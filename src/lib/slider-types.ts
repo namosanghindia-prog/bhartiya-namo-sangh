@@ -1,0 +1,41 @@
+export type Slide = {
+  id: string;
+  headline: string;
+  subtext: string;
+  ctaLabel: string;
+  ctaHref: string;
+  // Solid saffron-family color used as the slide background (no image
+  // upload pipeline yet — swap for a real image URL once Supabase Storage
+  // is connected).
+  bgColor: string;
+};
+
+export const DEFAULT_SLIDES: Slide[] = [
+  {
+    id: "slide-1",
+    headline: "Building Bharat, One Action at a Time",
+    subtext:
+      "Serving Indian communities across 28+ branches through social, charitable, environmental, and educational initiatives.",
+    ctaLabel: "Join as Member",
+    ctaHref: "/auth/signup",
+    bgColor: "#FF6B35",
+  },
+  {
+    id: "slide-2",
+    headline: "10,000+ Volunteers Strong",
+    subtext:
+      "Join a growing movement of Indians committed to nation-building and community service.",
+    ctaLabel: "See Upcoming Events",
+    ctaHref: "/events",
+    bgColor: "#E65C00",
+  },
+  {
+    id: "slide-3",
+    headline: "Every Rupee Creates Real Impact",
+    subtext:
+      "From disaster relief to education, your donation goes directly to programs that matter.",
+    ctaLabel: "Donate Now",
+    ctaHref: "/donate",
+    bgColor: "#CC5500",
+  },
+];
