@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export default function AuthLayout({
@@ -8,10 +9,14 @@ export default function AuthLayout({
   return (
     <div className="min-h-screen flex items-center justify-center bg-saffron-gradient px-4 py-12">
       <div className="w-full max-w-md">
-        <Link href="/" className="flex items-center justify-center gap-2 mb-6">
-          <span className="text-3xl" aria-hidden="true">
-            🇮🇳
-          </span>
+        <Link href="/" className="flex items-center justify-center gap-3 mb-6">
+          <Image
+            src="/logo.png"
+            alt="Bhartiya Namo Sangh"
+            width={56}
+            height={56}
+            className="h-14 w-14"
+          />
           <span className="font-heading text-xl font-semibold text-white">
             Bhartiya Namo Sangh
           </span>

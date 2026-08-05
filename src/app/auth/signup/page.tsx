@@ -1,14 +1,43 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { BRANCHES } from "@/lib/branches-data";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { Branch } from "@/lib/supabase/types";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchesLoading, setBranchesLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchBranches() {
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from("branches")
+          .select("*")
+          .eq("is_active", true)
+          .order("name");
+        if (error) {
+          console.error("Failed to fetch branches:", error);
+          return;
+        }
+        if (data) setBranches(data);
+      } catch (err) {
+        console.error("Exception fetching branches:", err);
+      } finally {
+        setBranchesLoading(false);
+      }
+    }
+    fetchBranches();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -19,14 +48,77 @@ export default function SignupPage() {
       return;
     }
 
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+
     setSubmitting(true);
-    // NOTE: NextAuth.js + Supabase are not wired up yet — this is a UI-only
-    // placeholder. Once configured, POST to /api/auth/register (create user,
-    // hash password, assign branch) then redirect to /dashboard.
-    await new Promise((r) => setTimeout(r, 600));
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const firstName = formData.get("firstName") as string;
+    const lastName = formData.get("lastName") as string;
+    const phone = formData.get("phone") as string;
+    const branchId = formData.get("branch") as string;
+
+    const supabase = createClient();
+
+    const { error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          phone,
+          branch_id: branchId || null,
+        },
+      },
+    });
+
     setSubmitting(false);
-    setError(
-      "Signup isn't connected to a database yet — this form is UI-only for now."
+
+    if (signUpError) {
+      if (signUpError.message.includes("already registered")) {
+        setError("This email is already registered. Please login instead.");
+      } else if (signUpError.message.includes("valid email")) {
+        setError("Please enter a valid email address.");
+      } else if (signUpError.message.includes("password")) {
+        setError("Password must be at least 8 characters with a mix of letters and numbers.");
+      } else {
+        setError(signUpError.message);
+      }
+      return;
+    }
+
+    setSuccess(true);
+  }
+
+  if (success) {
+    return (
+      <>
+        <h1 className="font-heading text-2xl font-semibold text-navy text-center">
+          Check your email
+        </h1>
+        <div className="mt-6 rounded-md bg-forest/10 border border-forest/20 px-4 py-3 text-sm text-forest">
+          We&apos;ve sent a confirmation link to your email. Please click it to
+          activate your account, then{" "}
+          <Link href="/auth/login" className="font-medium underline">
+            login here
+          </Link>
+          .
+        </div>
+        <p className="mt-6 text-center text-sm text-navy/70">
+          Didn&apos;t receive it?{" "}
+          <button
+            onClick={() => setSuccess(false)}
+            className="font-medium text-saffron-700 hover:text-saffron-800"
+          >
+            Try again
+          </button>
+        </p>
+      </>
     );
   }
 
@@ -117,12 +209,13 @@ export default function SignupPage() {
             name="branch"
             required
             defaultValue=""
-            className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+            disabled={branchesLoading}
+            className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400 disabled:bg-gray-100"
           >
             <option value="" disabled>
-              Choose a branch
+              {branchesLoading ? "Loading branches..." : "Choose a branch"}
             </option>
-            {BRANCHES.map((b) => (
+            {branches.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name} — {b.city}, {b.state}
               </option>

@@ -1,9 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
+
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -13,14 +19,44 @@ export default function LoginPage() {
     setSubmitting(true);
     setError(null);
 
-    // NOTE: NextAuth.js is not wired up yet — this is a UI-only placeholder.
-    // Once Supabase + NextAuth credentials/env vars are configured, replace
-    // this with: await signIn("credentials", { email, password })
-    await new Promise((r) => setTimeout(r, 600));
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    const supabase = createClient();
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
     setSubmitting(false);
-    setError(
-      "Login isn't connected to a database yet — this form is UI-only for now."
-    );
+
+    if (signInError) {
+      if (signInError.message.includes("Invalid login credentials")) {
+        setError("Invalid email or password. Please try again.");
+      } else if (signInError.message.includes("Email not confirmed")) {
+        setError("Please confirm your email address before logging in. Check your inbox for the confirmation link.");
+      } else if (signInError.message.includes("Too many requests")) {
+        setError("Too many login attempts. Please wait a few minutes and try again.");
+      } else {
+        setError(signInError.message);
+      }
+      return;
+    }
+
+    router.push(redirectTo);
+    router.refresh();
+  }
+
+  async function handleGoogleLogin() {
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?redirect=${redirectTo}`,
+      },
+    });
   }
 
   return (
@@ -114,6 +150,7 @@ export default function LoginPage() {
       <div className="mt-6 grid grid-cols-1 gap-3">
         <button
           type="button"
+          onClick={handleGoogleLogin}
           className="w-full rounded-md border border-saffron-200 px-4 py-2.5 text-sm font-medium text-navy hover:bg-saffron-50 transition-colors"
         >
           Continue with Google

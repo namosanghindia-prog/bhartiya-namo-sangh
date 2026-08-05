@@ -1,6 +1,25 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 import { ADMIN_KPIS, ADMIN_MEMBERS, EVENTS } from "@/lib/admin-data";
 
 export default function AdminDashboardPage() {
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    async function fetchPendingCount() {
+      const supabase = createClient();
+      const { count } = await supabase
+        .from("members")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending");
+      setPendingCount(count || 0);
+    }
+    fetchPendingCount();
+  }, []);
+
   const topEvents = [...EVENTS]
     .sort((a, b) => b.registered - a.registered)
     .slice(0, 4);
@@ -10,6 +29,27 @@ export default function AdminDashboardPage() {
       <h1 className="font-heading text-2xl font-semibold text-navy">
         Admin Dashboard
       </h1>
+
+      {/* Pending approvals alert */}
+      {pendingCount > 0 && (
+        <Link
+          href="/admin/approvals"
+          className="block rounded-xl border-2 border-amber-300 bg-amber-50 p-4 hover:bg-amber-100 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">⏳</span>
+            <div className="flex-1">
+              <div className="font-heading font-semibold text-amber-800">
+                {pendingCount} member{pendingCount !== 1 ? "s" : ""} awaiting approval
+              </div>
+              <div className="text-sm text-amber-700">
+                Click here to review and approve new registrations
+              </div>
+            </div>
+            <span className="text-amber-600">→</span>
+          </div>
+        </Link>
+      )}
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

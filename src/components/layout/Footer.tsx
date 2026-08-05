@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export default function Footer() {
@@ -10,9 +11,13 @@ export default function Footer() {
           {/* About */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-xl" aria-hidden="true">
-                🇮🇳
-              </span>
+              <Image
+                src="/logo.png"
+                alt="Bhartiya Namo Sangh"
+                width={32}
+                height={32}
+                className="h-8 w-8"
+              />
               <span className="font-heading text-base font-semibold">
                 Bhartiya Namo Sangh
               </span>

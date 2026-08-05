@@ -43,6 +43,7 @@ export interface Member {
   email: string | null;
   phone: string | null;
   avatar_url: string | null;
+  designation: string | null;
   date_of_birth: string | null;
   gender: Gender | null;
   address: string | null;
@@ -63,6 +64,15 @@ export interface Member {
   // Joined fields
   branch?: Branch;
   badges?: UserBadge[];
+}
+
+// Public member view (for /members page)
+export interface PublicMember {
+  first_name: string;
+  last_name: string;
+  designation: string | null;
+  avatar_url: string | null;
+  branch_name: string | null;
 }
 
 // 3. Event
@@ -270,4 +280,61 @@ export interface ContactSubmission {
   created_at: string;
   // Joined fields
   assignee?: Member;
+}
+
+// 13. Business
+export type BusinessStatus = "pending_payment" | "active" | "expired" | "rejected";
+export type BusinessCategory = "Retail" | "Services" | "Food & Beverage" | "Healthcare" | "Education" | "Technology" | "Manufacturing" | "Real Estate" | "Finance" | "Other";
+
+export interface Business {
+  id: string;
+  member_id: string;
+  business_name: string;
+  category: BusinessCategory;
+  description: string | null;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  logo_url: string | null;
+  status: BusinessStatus;
+  registration_fee_paid: boolean;
+  payment_submitted_at: string | null;
+  payment_confirmed_at: string | null;
+  payment_confirmed_by: string | null;
+  expires_at: string | null;
+  rejection_reason: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  member?: Member;
+}
+
+// 14. Business Promotion
+export type PromotionStatus = "requested" | "approved_awaiting_payment" | "payment_submitted" | "payment_confirmed" | "live" | "rejected" | "expired";
+
+export interface BusinessPromotion {
+  id: string;
+  business_id: string;
+  member_id: string;
+  mobile: string;
+  email: string;
+  website_link: string;
+  image_url: string | null;
+  status: PromotionStatus;
+  admin_approved_at: string | null;
+  payment_deadline: string | null;
+  payment_submitted_at: string | null;
+  payment_confirmed_at: string | null;
+  payment_confirmed_by: string | null;
+  ad_review_deadline: string | null;
+  ad_approved_at: string | null;
+  ad_approved_by: string | null;
+  live_from: string | null;
+  live_until: string | null;
+  rejection_reason: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  business?: Business;
+  member?: Member;
 }

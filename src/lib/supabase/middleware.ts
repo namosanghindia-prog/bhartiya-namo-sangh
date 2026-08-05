@@ -39,8 +39,53 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Redirect authenticated users away from auth pages
-  if (user && path.startsWith("/auth")) {
+  // For authenticated users accessing dashboard, check member status
+  if (user && path.startsWith("/dashboard") && !path.startsWith("/dashboard/account-status")) {
+    const { data: member } = await supabase
+      .from("members")
+      .select("status, role")
+      .eq("id", user.id)
+      .single();
+
+    if (member) {
+      if (member.status === "pending") {
+        const url = request.nextUrl.clone();
+        url.pathname = "/dashboard/account-status";
+        url.searchParams.set("status", "pending");
+        return NextResponse.redirect(url);
+      }
+      if (member.status === "suspended") {
+        const url = request.nextUrl.clone();
+        url.pathname = "/dashboard/account-status";
+        url.searchParams.set("status", "suspended");
+        return NextResponse.redirect(url);
+      }
+      if (member.status === "inactive") {
+        const url = request.nextUrl.clone();
+        url.pathname = "/dashboard/account-status";
+        url.searchParams.set("status", "inactive");
+        return NextResponse.redirect(url);
+      }
+    }
+  }
+
+  // For admin routes, also verify the user has admin role
+  if (user && path.startsWith("/admin")) {
+    const { data: member } = await supabase
+      .from("members")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (!member || !["admin", "super_admin", "branch_admin"].includes(member.role)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // Redirect authenticated users away from auth pages (except reset-password and callback)
+  if (user && path.startsWith("/auth") && !path.includes("/reset-password") && !path.includes("/callback")) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);

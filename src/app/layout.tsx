@@ -14,6 +14,14 @@ export const metadata: Metadata = {
   title: "Bhartiya Namo Sangh | Building Bharat, One Action at a Time",
   description:
     "Bhartiya Namo Sangh is a New Delhi-based NGO with branches across India, driving social, charitable, environmental, and educational impact.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({

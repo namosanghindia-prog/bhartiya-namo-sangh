@@ -1,45 +1,198 @@
 "use client";
 
-import { useState } from "react";
-import { CURRENT_MEMBER } from "@/lib/dashboard-data";
-import { BRANCHES } from "@/lib/branches-data";
+import { useState, useEffect, useRef } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { Member, Branch } from "@/lib/supabase/types";
 
 export default function ProfilePage() {
+  const [member, setMember] = useState<Member | null>(null);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    async function loadData() {
+      const supabase = createClient();
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const [memberRes, branchesRes] = await Promise.all([
+        supabase.from("members").select("*").eq("id", user.id).single(),
+        supabase.from("branches").select("*").eq("is_active", true).order("name"),
+      ]);
+
+      if (memberRes.data) setMember(memberRes.data);
+      if (branchesRes.data) setBranches(branchesRes.data);
+      setLoading(false);
+    }
+    loadData();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!member) return;
+
     setSaving(true);
     setSaved(false);
-    // NOTE: PATCH to /api/users/[id] once Supabase is connected.
-    await new Promise((r) => setTimeout(r, 500));
+    setError(null);
+
+    const formData = new FormData(e.currentTarget);
+    const updates = {
+      first_name: formData.get("firstName") as string,
+      last_name: formData.get("lastName") as string,
+      phone: formData.get("phone") as string,
+      branch_id: formData.get("branch") as string || null,
+      address: formData.get("address") as string || null,
+      designation: formData.get("designation") as string || null,
+    };
+
+    const supabase = createClient();
+    const { error: updateError } = await supabase
+      .from("members")
+      .update(updates)
+      .eq("id", member.id);
+
     setSaving(false);
+
+    if (updateError) {
+      setError(updateError.message);
+      return;
+    }
+
+    setMember({ ...member, ...updates });
     setSaved(true);
+  }
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !member) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setError("Please select a JPG, PNG, or WebP image");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setError("Image must be less than 2MB");
+      return;
+    }
+
+    setUploading(true);
+    setError(null);
+
+    const supabase = createClient();
+    const fileExt = file.name.split(".").pop();
+    const filePath = `${member.id}/avatar.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      setUploading(false);
+      setError(uploadError.message);
+      return;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from("avatars")
+      .getPublicUrl(filePath);
+
+    const { error: updateError } = await supabase
+      .from("members")
+      .update({ avatar_url: publicUrl })
+      .eq("id", member.id);
+
+    setUploading(false);
+
+    if (updateError) {
+      setError(updateError.message);
+      return;
+    }
+
+    setMember({ ...member, avatar_url: publicUrl });
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-navy/60">Loading profile...</div>
+      </div>
+    );
+  }
+
+  if (!member) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-red-600">Could not load profile</div>
+      </div>
+    );
   }
 
   const nextMilestone = 200;
   const pct = Math.min(
-    Math.round((CURRENT_MEMBER.volunteerHours / nextMilestone) * 100),
+    Math.round((member.volunteer_hours / nextMilestone) * 100),
     100
   );
 
   return (
     <div className="space-y-6 max-w-3xl">
       {/* Header */}
-      <div className="rounded-xl border border-saffron-200 bg-white p-6 flex items-center gap-4">
-        <div className="h-16 w-16 rounded-full bg-saffron-200 flex items-center justify-center font-heading text-xl font-semibold text-saffron-800">
-          {CURRENT_MEMBER.firstName[0]}
-          {CURRENT_MEMBER.lastName[0]}
+      <div className="rounded-xl border border-saffron-200 bg-white p-6">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            {member.avatar_url ? (
+              <img
+                src={member.avatar_url}
+                alt=""
+                className="h-20 w-20 rounded-full object-cover border-2 border-saffron-200"
+              />
+            ) : (
+              <div className="h-20 w-20 rounded-full bg-saffron-200 flex items-center justify-center font-heading text-2xl font-semibold text-saffron-800 border-2 border-saffron-300">
+                {member.first_name[0]}
+                {member.last_name[0]}
+              </div>
+            )}
+          </div>
+          <div className="flex-1">
+            <h1 className="font-heading text-xl font-semibold text-navy">
+              {member.first_name} {member.last_name}
+            </h1>
+            <p className="text-sm text-navy/60">{member.email}</p>
+            {member.designation && (
+              <p className="text-sm text-navy/70">{member.designation}</p>
+            )}
+            <span className="mt-1 inline-block rounded-full bg-forest/10 px-2 py-0.5 text-xs font-medium text-forest capitalize">
+              {member.status} Member
+            </span>
+          </div>
         </div>
-        <div>
-          <h1 className="font-heading text-xl font-semibold text-navy">
-            {CURRENT_MEMBER.firstName} {CURRENT_MEMBER.lastName}
-          </h1>
-          <p className="text-sm text-navy/60">{CURRENT_MEMBER.email}</p>
-          <span className="mt-1 inline-block rounded-full bg-forest/10 px-2 py-0.5 text-xs font-medium text-forest">
-            Active Member
-          </span>
+        <div className="mt-4 pt-4 border-t border-saffron-100">
+          <label className="block text-sm text-navy/70 mb-2">Profile Photo</label>
+          <div className="flex items-center gap-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handlePhotoUpload}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="rounded-md border border-saffron-300 px-4 py-2 text-sm font-medium text-navy hover:bg-saffron-50 disabled:opacity-60"
+            >
+              {uploading ? "Uploading..." : "Change Photo"}
+            </button>
+            <span className="text-xs text-navy/50">JPG, PNG or WebP. Max 2MB.</span>
+          </div>
         </div>
       </div>
 
@@ -57,7 +210,9 @@ export default function ProfilePage() {
               First name
             </label>
             <input
-              defaultValue={CURRENT_MEMBER.firstName}
+              name="firstName"
+              defaultValue={member.first_name}
+              required
               className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
             />
           </div>
@@ -66,27 +221,52 @@ export default function ProfilePage() {
               Last name
             </label>
             <input
-              defaultValue={CURRENT_MEMBER.lastName}
+              name="lastName"
+              defaultValue={member.last_name}
+              required
               className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
             />
           </div>
         </div>
+
         <div>
-          <label className="block text-sm text-navy/70 mb-1">Phone</label>
+          <label className="block text-sm text-navy/70 mb-1">Designation</label>
           <input
-            defaultValue={CURRENT_MEMBER.phone}
+            name="designation"
+            defaultValue={member.designation ?? ""}
+            placeholder="e.g. Volunteer Coordinator, Event Manager"
             className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
           />
         </div>
+
+        <div>
+          <label className="block text-sm text-navy/70 mb-1">Phone</label>
+          <input
+            name="phone"
+            defaultValue={member.phone ?? ""}
+            className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm text-navy/70 mb-1">Address</label>
+          <input
+            name="address"
+            defaultValue={member.address ?? ""}
+            placeholder="Your full address"
+            className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+          />
+        </div>
+
         <div>
           <label className="block text-sm text-navy/70 mb-1">Branch</label>
           <select
-            defaultValue={
-              BRANCHES.find((b) => b.name === CURRENT_MEMBER.branch)?.id
-            }
+            name="branch"
+            defaultValue={member.branch_id ?? ""}
             className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
           >
-            {BRANCHES.map((b) => (
+            <option value="">No branch selected</option>
+            {branches.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name} — {b.city}, {b.state}
               </option>
@@ -94,9 +274,15 @@ export default function ProfilePage() {
           </select>
         </div>
 
+        {error && (
+          <p className="text-sm text-red-600 bg-red-50 rounded-md px-3 py-2">
+            {error}
+          </p>
+        )}
+
         {saved && (
           <p className="text-sm text-forest bg-forest/10 rounded-md px-3 py-2">
-            Profile updated (locally only — not yet saved to a database).
+            Profile updated successfully!
           </p>
         )}
 
@@ -123,7 +309,7 @@ export default function ProfilePage() {
           Volunteer hours & achievements
         </h2>
         <div className="flex justify-between text-sm text-navy/70 mb-1">
-          <span>{CURRENT_MEMBER.volunteerHours} hours logged</span>
+          <span>{member.volunteer_hours} hours logged</span>
           <span>{nextMilestone} hours to Gold Member</span>
         </div>
         <div className="h-2 rounded-full bg-saffron-100 overflow-hidden">

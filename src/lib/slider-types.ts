@@ -4,10 +4,10 @@ export type Slide = {
   subtext: string;
   ctaLabel: string;
   ctaHref: string;
-  // Solid saffron-family color used as the slide background (no image
-  // upload pipeline yet — swap for a real image URL once Supabase Storage
-  // is connected).
+  // Solid color fallback when no image is set
   bgColor: string;
+  // Optional background image URL (from Supabase Storage)
+  imageUrl?: string;
 };
 
 export const DEFAULT_SLIDES: Slide[] = [

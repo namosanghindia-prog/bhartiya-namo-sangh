@@ -5,7 +5,8 @@
     "subtext": "Serving Indian communities across 28+ branches through social, charitable, environmental, and educational initiatives.",
     "ctaLabel": "Join as Member",
     "ctaHref": "/auth/signup",
-    "bgColor": "#FF6B35"
+    "bgColor": "#FF6B35",
+    "imageUrl": "https://prkfshuqdhjaxkuzjrwn.supabase.co/storage/v1/object/public/slider-images/slide-1-1785920765389.jpeg"
   },
   {
     "id": "slide-2",
@@ -13,7 +14,8 @@
     "subtext": "Join a growing movement of Indians committed to nation-building and community service.",
     "ctaLabel": "See Upcoming Events",
     "ctaHref": "/events",
-    "bgColor": "#E65C00"
+    "bgColor": "#E65C00",
+    "imageUrl": "https://prkfshuqdhjaxkuzjrwn.supabase.co/storage/v1/object/public/slider-images/slide-2-1785922401807.jpeg"
   },
   {
     "id": "slide-3",
@@ -21,6 +23,7 @@
     "subtext": "From disaster relief to education, your donation goes directly to programs that matter.",
     "ctaLabel": "Donate Now",
     "ctaHref": "/donate",
-    "bgColor": "#CC5500"
+    "bgColor": "#CC5500",
+    "imageUrl": "https://prkfshuqdhjaxkuzjrwn.supabase.co/storage/v1/object/public/slider-images/slide-3-1785922581426.jpeg"
   }
 ]

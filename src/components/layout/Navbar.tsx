@@ -1,11 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
 const NAV_LINKS = [
   { href: "/about", label: "About" },
   { href: "/branches", label: "Branches" },
+  { href: "/members", label: "Members" },
+  { href: "/businesses", label: "Businesses" },
   { href: "/events", label: "Events" },
   { href: "/contact", label: "Contact" },
 ];
@@ -19,9 +22,13 @@ export default function Navbar() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-2xl" aria-hidden="true">
-              🇮🇳
-            </span>
+            <Image
+              src="/logo.png"
+              alt="Bhartiya Namo Sangh"
+              width={40}
+              height={40}
+              className="h-10 w-10"
+            />
             <span className="font-heading text-lg font-semibold text-navy">
               Bhartiya Namo Sangh
             </span>
