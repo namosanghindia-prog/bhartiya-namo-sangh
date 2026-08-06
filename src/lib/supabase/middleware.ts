@@ -66,6 +66,12 @@ export async function updateSession(request: NextRequest) {
         url.searchParams.set("status", "inactive");
         return NextResponse.redirect(url);
       }
+      if (member.status === "approved_awaiting_payment") {
+        const url = request.nextUrl.clone();
+        url.pathname = "/dashboard/account-status";
+        url.searchParams.set("status", "approved_awaiting_payment");
+        return NextResponse.redirect(url);
+      }
     }
   }
 

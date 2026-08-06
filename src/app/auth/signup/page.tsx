@@ -15,6 +15,14 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [branches, setBranches] = useState<Branch[]>([]);
   const [branchesLoading, setBranchesLoading] = useState(true);
+  const [declarationAccepted, setDeclarationAccepted] = useState(false);
+  const [membershipType, setMembershipType] = useState<"normal" | "premium" | "lifetime">("normal");
+
+  const MEMBERSHIP_TIERS = {
+    normal: { name: "Normal", nameHi: "सामान्य", price: 1100, period: "/year", periodHi: "/वर्ष" },
+    premium: { name: "Premium", nameHi: "प्रीमियम", price: 11000, period: "/year", periodHi: "/वर्ष" },
+    lifetime: { name: "Lifetime", nameHi: "आजीवन", price: 99999, period: "one-time", periodHi: "एकमुश्त" },
+  };
 
   useEffect(() => {
     async function fetchBranches() {
@@ -53,6 +61,11 @@ export default function SignupPage() {
       return;
     }
 
+    if (!declarationAccepted) {
+      setError("You must accept the declaration to proceed.");
+      return;
+    }
+
     setSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
@@ -61,8 +74,14 @@ export default function SignupPage() {
     const lastName = formData.get("lastName") as string;
     const phone = formData.get("phone") as string;
     const branchId = formData.get("branch") as string;
+    const fatherName = formData.get("fatherName") as string;
+    const address = formData.get("address") as string;
+    const city = formData.get("city") as string;
+    const state = formData.get("state") as string;
 
     const supabase = createClient();
+
+    const membershipFeeAmount = MEMBERSHIP_TIERS[membershipType].price;
 
     const { error: signUpError } = await supabase.auth.signUp({
       email,
@@ -73,6 +92,13 @@ export default function SignupPage() {
           last_name: lastName,
           phone,
           branch_id: branchId || null,
+          father_name: fatherName,
+          address,
+          city,
+          state,
+          declaration_accepted: true,
+          membership_type: membershipType,
+          membership_fee_amount: membershipFeeAmount,
         },
       },
     });
@@ -125,10 +151,10 @@ export default function SignupPage() {
   return (
     <>
       <h1 className="font-heading text-2xl font-semibold text-navy text-center">
-        Join Bhartiya Namo Sangh
+        भारतीय नमो संघ में शामिल हों
       </h1>
       <p className="text-center text-sm text-navy/60 mt-1">
-        Create your member account
+        Join Bhartiya Namo Sangh
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -138,7 +164,8 @@ export default function SignupPage() {
               htmlFor="firstName"
               className="block text-sm font-medium text-navy/80 mb-1"
             >
-              First name
+              <span className="block">प्रथम नाम</span>
+              <span className="text-xs text-navy/60">First Name</span>
             </label>
             <input
               id="firstName"
@@ -152,7 +179,8 @@ export default function SignupPage() {
               htmlFor="lastName"
               className="block text-sm font-medium text-navy/80 mb-1"
             >
-              Last name
+              <span className="block">अंतिम नाम</span>
+              <span className="text-xs text-navy/60">Last Name</span>
             </label>
             <input
               id="lastName"
@@ -165,10 +193,27 @@ export default function SignupPage() {
 
         <div>
           <label
+            htmlFor="fatherName"
+            className="block text-sm font-medium text-navy/80 mb-1"
+          >
+            <span className="block">पिता/पति का नाम</span>
+            <span className="text-xs text-navy/60">Father&apos;s / Husband&apos;s Name</span>
+          </label>
+          <input
+            id="fatherName"
+            name="fatherName"
+            required
+            className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+          />
+        </div>
+
+        <div>
+          <label
             htmlFor="email"
             className="block text-sm font-medium text-navy/80 mb-1"
           >
-            Email
+            <span className="block">ईमेल</span>
+            <span className="text-xs text-navy/60">Email</span>
           </label>
           <input
             id="email"
@@ -185,7 +230,8 @@ export default function SignupPage() {
             htmlFor="phone"
             className="block text-sm font-medium text-navy/80 mb-1"
           >
-            Phone
+            <span className="block">मोबाइल नंबर</span>
+            <span className="text-xs text-navy/60">Phone</span>
           </label>
           <input
             id="phone"
@@ -199,10 +245,61 @@ export default function SignupPage() {
 
         <div>
           <label
+            htmlFor="address"
+            className="block text-sm font-medium text-navy/80 mb-1"
+          >
+            <span className="block">पूर्ण पता</span>
+            <span className="text-xs text-navy/60">Full Address</span>
+          </label>
+          <textarea
+            id="address"
+            name="address"
+            required
+            rows={2}
+            className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label
+              htmlFor="city"
+              className="block text-sm font-medium text-navy/80 mb-1"
+            >
+              <span className="block">जिला</span>
+              <span className="text-xs text-navy/60">District</span>
+            </label>
+            <input
+              id="city"
+              name="city"
+              required
+              className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="state"
+              className="block text-sm font-medium text-navy/80 mb-1"
+            >
+              <span className="block">राज्य</span>
+              <span className="text-xs text-navy/60">State</span>
+            </label>
+            <input
+              id="state"
+              name="state"
+              required
+              className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label
             htmlFor="branch"
             className="block text-sm font-medium text-navy/80 mb-1"
           >
-            Select your branch
+            <span className="block">शाखा चुनें</span>
+            <span className="text-xs text-navy/60">Select your Branch</span>
           </label>
           <select
             id="branch"
@@ -223,13 +320,84 @@ export default function SignupPage() {
           </select>
         </div>
 
+        {/* Membership Type Selection */}
+        <div>
+          <label className="block text-sm font-medium text-navy/80 mb-2">
+            <span className="block">सदस्यता प्रकार चुनें</span>
+            <span className="text-xs text-navy/60">Select Membership Type</span>
+          </label>
+          <div className="grid grid-cols-1 gap-3">
+            {(Object.keys(MEMBERSHIP_TIERS) as Array<keyof typeof MEMBERSHIP_TIERS>).map((tier) => {
+              const info = MEMBERSHIP_TIERS[tier];
+              const isSelected = membershipType === tier;
+              const isLifetime = tier === "lifetime";
+              const isPremium = tier === "premium";
+              return (
+                <label
+                  key={tier}
+                  className={`relative flex items-center gap-3 rounded-lg border-2 p-3 cursor-pointer transition-all ${
+                    isSelected
+                      ? isLifetime
+                        ? "border-gold bg-gold/5"
+                        : isPremium
+                        ? "border-saffron-500 bg-saffron-50"
+                        : "border-saffron-400 bg-saffron-50"
+                      : "border-saffron-200 hover:border-saffron-300"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="membershipType"
+                    value={tier}
+                    checked={isSelected}
+                    onChange={() => setMembershipType(tier)}
+                    className="sr-only"
+                  />
+                  <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
+                    isSelected
+                      ? isLifetime
+                        ? "border-gold"
+                        : "border-saffron-600"
+                      : "border-saffron-300"
+                  }`}>
+                    {isSelected && (
+                      <div className={`h-2.5 w-2.5 rounded-full ${
+                        isLifetime ? "bg-gold" : "bg-saffron-600"
+                      }`} />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`font-semibold ${
+                        isLifetime ? "text-gold" : isPremium ? "text-saffron-700" : "text-navy"
+                      }`}>
+                        {info.nameHi} / {info.name}
+                      </span>
+                      {isLifetime && (
+                        <span className="text-[10px] bg-gold/20 text-gold px-1.5 py-0.5 rounded font-medium">
+                          BEST VALUE
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-sm text-navy/70">
+                      <span className="font-semibold text-navy">₹{info.price.toLocaleString("en-IN")}</span>
+                      <span className="text-xs"> {info.period}</span>
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label
               htmlFor="password"
               className="block text-sm font-medium text-navy/80 mb-1"
             >
-              Password
+              <span className="block">पासवर्ड</span>
+              <span className="text-xs text-navy/60">Password</span>
             </label>
             <input
               id="password"
@@ -248,7 +416,8 @@ export default function SignupPage() {
               htmlFor="confirmPassword"
               className="block text-sm font-medium text-navy/80 mb-1"
             >
-              Confirm
+              <span className="block">पुष्टि करें</span>
+              <span className="text-xs text-navy/60">Confirm</span>
             </label>
             <input
               id="confirmPassword"
@@ -262,6 +431,35 @@ export default function SignupPage() {
               className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
             />
           </div>
+        </div>
+
+        {/* Declaration Section */}
+        <div className="rounded-lg border border-saffron-300 bg-saffron-50 p-4 mt-6">
+          <h3 className="font-heading text-sm font-semibold text-navy mb-2">
+            घोषणा / Declaration
+          </h3>
+          <p className="text-sm text-navy/80 leading-relaxed mb-3">
+            मैं भारतीय नमो संघ की विचारधारा, उद्देश्यों एवं संविधान का पूर्ण सम्मान
+            करते हुए संगठन के नियमों का पालन करने का संकल्प लेता/लेती हूँ। मुझे
+            विश्वास है कि यदि मुझे संगठन में मेरी योग्यता एवं क्षमता के अनुरूप किसी
+            पद पर सेवा करने का अवसर प्रदान किया जाता है, तो मैं पूर्ण निष्ठा,
+            ईमानदारी एवं समर्पण के साथ अपने दायित्वों का निर्वहन करूँगा/करूँगी तथा
+            संगठन के विस्तार एवं समाजहित के कार्यों में सक्रिय योगदान दूँगा/दूँगी।
+          </p>
+          <p className="text-xs text-navy/60 italic mb-4">
+            I pledge to uphold the organization&apos;s principles and serve with full dedication and integrity.
+          </p>
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={declarationAccepted}
+              onChange={(e) => setDeclarationAccepted(e.target.checked)}
+              className="mt-0.5 rounded border-saffron-400 text-saffron-700 focus:ring-saffron-400"
+            />
+            <span className="text-sm text-navy/80">
+              मैं उपरोक्त घोषणा से सहमत हूँ / I agree to the above declaration
+            </span>
+          </label>
         </div>
 
         <div className="space-y-2 text-sm text-navy/70">
@@ -290,7 +488,7 @@ export default function SignupPage() {
           disabled={submitting}
           className="w-full rounded-md bg-saffron-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-saffron-800 transition-colors disabled:opacity-60"
         >
-          {submitting ? "Creating account..." : "Create Account"}
+          {submitting ? "Creating account..." : "Create Account / खाता बनाएं"}
         </button>
       </form>
 

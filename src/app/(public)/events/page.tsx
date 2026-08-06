@@ -1,8 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { EVENTS, CATEGORIES, type EventCategory } from "@/lib/events-data";
+import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { EventCategory } from "@/lib/supabase/types";
+
+const CATEGORIES: EventCategory[] = [
+  "Social",
+  "Charity",
+  "Environmental",
+  "Education",
+  "Political",
+  "Cultural",
+  "Sports",
+  "Health",
+];
+
+interface EventWithCount {
+  id: string;
+  slug: string;
+  title: string;
+  category: EventCategory;
+  date: string;
+  start_time: string;
+  end_time: string;
+  location: string;
+  target_participants: number;
+  registered_count: number;
+}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", {
@@ -13,19 +38,65 @@ function formatDate(iso: string) {
 }
 
 export default function EventsPage() {
+  const [events, setEvents] = useState<EventWithCount[]>([]);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<EventCategory | "all">("all");
 
+  useEffect(() => {
+    async function loadEvents() {
+      const supabase = createClient();
+
+      const { data: eventsData, error } = await supabase
+        .from("events")
+        .select("id, slug, title, category, date, start_time, end_time, location, target_participants")
+        .eq("is_published", true)
+        .eq("is_cancelled", false)
+        .order("date", { ascending: true });
+
+      if (error) {
+        console.error("Failed to load events:", error);
+        setLoading(false);
+        return;
+      }
+
+      if (eventsData && eventsData.length > 0) {
+        const eventIds = eventsData.map((e) => e.id);
+        const { data: regCounts } = await supabase
+          .from("event_registrations")
+          .select("event_id")
+          .in("event_id", eventIds)
+          .in("status", ["registered", "confirmed", "attended"]);
+
+        const countMap: Record<string, number> = {};
+        regCounts?.forEach((r) => {
+          countMap[r.event_id] = (countMap[r.event_id] || 0) + 1;
+        });
+
+        const eventsWithCounts = eventsData.map((e) => ({
+          ...e,
+          registered_count: countMap[e.id] || 0,
+        }));
+
+        setEvents(eventsWithCounts);
+      }
+
+      setLoading(false);
+    }
+
+    loadEvents();
+  }, []);
+
   const filtered = useMemo(() => {
-    return EVENTS.filter((e) => {
+    return events.filter((e) => {
       const matchesQuery =
         query.trim() === "" ||
         e.title.toLowerCase().includes(query.toLowerCase()) ||
         e.location.toLowerCase().includes(query.toLowerCase());
       const matchesCategory = category === "all" || e.category === category;
       return matchesQuery && matchesCategory;
-    }).sort((a, b) => a.date.localeCompare(b.date));
-  }, [query, category]);
+    });
+  }, [events, query, category]);
 
   return (
     <>
@@ -54,16 +125,12 @@ export default function EventsPage() {
             />
             <select
               value={category}
-              onChange={(e) =>
-                setCategory(e.target.value as EventCategory | "all")
-              }
+              onChange={(e) => setCategory(e.target.value as EventCategory | "all")}
               className="rounded-md border border-saffron-200 px-4 py-2 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-saffron-400"
             >
               <option value="all">All Categories</option>
               {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
+                <option key={c} value={c}>{c}</option>
               ))}
             </select>
           </div>
@@ -73,20 +140,20 @@ export default function EventsPage() {
       {/* EVENTS GRID */}
       <section className="py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {filtered.length === 0 ? (
-            <p className="text-navy/60 text-sm">
-              No events match your search.
-            </p>
+          {loading ? (
+            <p className="text-navy/60 text-sm">Loading events...</p>
+          ) : filtered.length === 0 ? (
+            <p className="text-navy/60 text-sm">No events match your search.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {filtered.map((event) => {
-                const pct = Math.round(
-                  (event.registered / event.targetParticipants) * 100
-                );
+                const pct = event.target_participants > 0
+                  ? Math.round((event.registered_count / event.target_participants) * 100)
+                  : 0;
                 return (
                   <Link
                     key={event.id}
-                    href={`/events/${event.id}`}
+                    href={`/events/${event.slug}`}
                     className="rounded-xl border border-saffron-200 bg-white p-6 hover:border-saffron-400 hover:shadow-md transition-all"
                   >
                     <span className="inline-block rounded-full bg-saffron-100 px-3 py-1 text-xs font-semibold text-saffron-800">
@@ -97,16 +164,14 @@ export default function EventsPage() {
                     </h3>
                     <div className="mt-2 space-y-1 text-sm text-navy/60">
                       <p>
-                        📅 {formatDate(event.date)} &middot; ⏰{" "}
-                        {event.startTime} – {event.endTime}
+                        📅 {formatDate(event.date)} &middot; ⏰ {event.start_time} – {event.end_time}
                       </p>
                       <p>📍 {event.location}</p>
                     </div>
                     <div className="mt-4">
                       <div className="flex justify-between text-xs text-navy/60 mb-1">
                         <span>
-                          {event.registered} / {event.targetParticipants}{" "}
-                          registered
+                          {event.registered_count} / {event.target_participants} registered
                         </span>
                         <span>{pct}%</span>
                       </div>

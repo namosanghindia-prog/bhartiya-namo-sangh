@@ -10,6 +10,7 @@ import type { Member } from "@/lib/supabase/types";
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: "📊" },
   { href: "/admin/approvals", label: "Approvals", icon: "✅", badgeKey: "approvals" },
+  { href: "/admin/membership-payments", label: "Membership Payments", icon: "💳", badgeKey: "membershipPayments" },
   { href: "/admin/members", label: "Members", icon: "👥" },
   { href: "/admin/businesses", label: "Businesses", icon: "🏪" },
   { href: "/admin/promotions", label: "Promotions", icon: "📣", badgeKey: "promotions" },
@@ -36,13 +37,15 @@ export default function AdminLayout({
     async function fetchData() {
       const supabase = createClient();
 
-      const [approvalsRes, promotionsRes] = await Promise.all([
+      const [approvalsRes, membershipPaymentsRes, promotionsRes] = await Promise.all([
         supabase.from("members").select("*", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("members").select("*", { count: "exact", head: true }).eq("status", "approved_awaiting_payment").eq("membership_payment_status", "submitted"),
         supabase.from("business_promotions").select("*", { count: "exact", head: true }).in("status", ["requested", "payment_submitted", "payment_confirmed"]),
       ]);
 
       setBadgeCounts({
         approvals: approvalsRes.count || 0,
+        membershipPayments: membershipPaymentsRes.count || 0,
         promotions: promotionsRes.count || 0,
       });
 

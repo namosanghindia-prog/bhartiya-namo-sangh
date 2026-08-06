@@ -1,6 +1,8 @@
 // Enums
 export type MemberRole = "member" | "branch_admin" | "admin" | "super_admin";
-export type MemberStatus = "active" | "inactive" | "suspended" | "pending";
+export type MemberStatus = "active" | "inactive" | "suspended" | "pending" | "approved_awaiting_payment";
+export type MembershipType = "normal" | "premium" | "lifetime";
+export type MembershipPaymentStatus = "pending" | "submitted" | "confirmed";
 export type Gender = "male" | "female" | "other";
 export type EventCategory = "Social" | "Charity" | "Environmental" | "Education" | "Political" | "Cultural" | "Sports" | "Health";
 export type RegistrationStatus = "registered" | "confirmed" | "attended" | "cancelled" | "no_show";
@@ -46,6 +48,7 @@ export interface Member {
   designation: string | null;
   date_of_birth: string | null;
   gender: Gender | null;
+  father_name: string | null;
   address: string | null;
   city: string | null;
   state: string | null;
@@ -53,6 +56,16 @@ export interface Member {
   branch_id: string | null;
   role: MemberRole;
   status: MemberStatus;
+  declaration_accepted: boolean;
+  membership_type: MembershipType | null;
+  membership_fee_amount: number | null;
+  membership_payment_status: MembershipPaymentStatus | null;
+  membership_payment_submitted_at: string | null;
+  membership_payment_confirmed_at: string | null;
+  membership_payment_confirmed_by: string | null;
+  membership_number: number | null;
+  membership_issued_at: string | null;
+  membership_expires_at: string | null;
   volunteer_hours: number;
   total_donations: number;
   joined_date: string;
@@ -64,6 +77,19 @@ export interface Member {
   // Joined fields
   branch?: Branch;
   badges?: UserBadge[];
+}
+
+// Public membership verification (for QR code scan page)
+export interface PublicMembershipVerification {
+  id: string;
+  name: string;
+  photo: string | null;
+  membership_type: MembershipType | null;
+  membership_number: number;
+  branch_name: string | null;
+  status: MemberStatus;
+  membership_issued_at: string;
+  membership_expires_at: string | null;
 }
 
 // Public member view (for /members page)

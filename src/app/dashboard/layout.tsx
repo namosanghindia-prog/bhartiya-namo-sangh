@@ -10,6 +10,7 @@ import type { Member } from "@/lib/supabase/types";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: "🏠" },
   { href: "/dashboard/profile", label: "My Profile", icon: "👤" },
+  { href: "/dashboard/id-card", label: "My ID Card", icon: "🪪" },
   { href: "/dashboard/business", label: "My Business", icon: "🏪" },
   { href: "/dashboard/events", label: "My Events", icon: "📅" },
   { href: "/dashboard/donations", label: "Donations", icon: "💚" },
