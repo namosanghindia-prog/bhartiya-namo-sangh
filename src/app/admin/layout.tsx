@@ -33,6 +33,7 @@ export default function AdminLayout({
   const [badgeCounts, setBadgeCounts] = useState<Record<string, number>>({});
   const [admin, setAdmin] = useState<Member | null>(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [showMobileNav, setShowMobileNav] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -63,15 +64,98 @@ export default function AdminLayout({
     fetchData();
   }, [pathname]);
 
+  // Close mobile nav on route change
+  useEffect(() => {
+    setShowMobileNav(false);
+  }, [pathname]);
+
   async function handleSignOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/");
   }
 
+  const totalBadges = Object.values(badgeCounts).reduce((a, b) => a + b, 0);
+
   return (
     <div className="min-h-screen flex bg-saffron-50">
-      {/* Sidebar */}
+      {/* Mobile nav overlay */}
+      {showMobileNav && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setShowMobileNav(false)}
+        />
+      )}
+
+      {/* Mobile sidebar drawer */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-navy transform transition-transform duration-200 ease-in-out md:hidden overflow-hidden ${
+          showMobileNav ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between px-4 h-16 border-b border-white/10">
+          <Link href="/" className="flex items-center gap-2" onClick={() => setShowMobileNav(false)}>
+            <Image
+              src="/logo.png"
+              alt="Bhartiya Namo Sangh"
+              width={32}
+              height={32}
+              className="h-8 w-8"
+            />
+            <span className="font-heading text-sm font-semibold text-white">
+              BNS Admin
+            </span>
+          </Link>
+          <button
+            onClick={() => setShowMobileNav(false)}
+            className="p-2 text-white/60 hover:text-white"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto h-[calc(100vh-8rem)]">
+          {NAV_ITEMS.map((item) => {
+            const active =
+              item.href === "/admin"
+                ? pathname === "/admin"
+                : pathname.startsWith(item.href);
+            const badgeCount = item.badgeKey ? badgeCounts[item.badgeKey] || 0 : 0;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setShowMobileNav(false)}
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  active
+                    ? "bg-saffron-700 text-white"
+                    : "text-white/70 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <span aria-hidden="true">{item.icon}</span>
+                <span className="flex-1">{item.label}</span>
+                {badgeCount > 0 && (
+                  <span className="ml-auto rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white">
+                    {badgeCount}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="p-4 border-t border-white/10">
+          <Link
+            href="/"
+            onClick={() => setShowMobileNav(false)}
+            className="text-sm text-white/50 hover:text-white"
+          >
+            ← Back to site
+          </Link>
+        </div>
+      </aside>
+
+      {/* Desktop Sidebar */}
       <aside className="hidden md:flex md:w-64 md:flex-col border-r border-saffron-200 bg-navy">
         <Link
           href="/"
@@ -126,8 +210,23 @@ export default function AdminLayout({
       {/* Main column */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-16 flex items-center justify-between border-b border-saffron-200 bg-white px-4 sm:px-6">
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => setShowMobileNav(true)}
+            className="md:hidden p-2 -ml-2 text-navy/70 hover:text-navy relative"
+          >
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            {totalBadges > 0 && (
+              <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-xs font-semibold text-white flex items-center justify-center">
+                {totalBadges > 9 ? "9+" : totalBadges}
+              </span>
+            )}
+          </button>
+
           <span className="md:hidden font-heading text-sm font-semibold text-navy">
-            BNS Admin
+            Admin
           </span>
           <div className="flex-1" />
           <div className="relative">
@@ -184,7 +283,7 @@ export default function AdminLayout({
             )}
           </div>
         </header>
-        <main className="flex-1 p-4 sm:p-6">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 overflow-x-hidden">{children}</main>
       </div>
     </div>
   );

@@ -255,7 +255,7 @@ export default function AdminDonationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="font-heading text-2xl font-semibold text-navy">Donations</h1>
         <div className="flex items-center gap-2">
           <button
@@ -327,7 +327,7 @@ export default function AdminDonationsPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-navy/70 mb-1">
                   Donor Name *
@@ -359,7 +359,7 @@ export default function AdminDonationsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-navy/70 mb-1">
                   Email
@@ -388,7 +388,7 @@ export default function AdminDonationsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-navy/70 mb-1">
                   Category *

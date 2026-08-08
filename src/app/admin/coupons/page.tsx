@@ -155,7 +155,7 @@ export default function AdminCouponsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4">
         <div>
           <h1 className="font-heading text-2xl font-semibold text-navy">
             VIP Coupons
@@ -164,7 +164,7 @@ export default function AdminCouponsPage() {
             Generate single-use codes for instant free membership
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={loadCoupons}
             className="rounded-md border border-saffron-300 px-4 py-2 text-sm font-medium text-navy hover:bg-saffron-50"

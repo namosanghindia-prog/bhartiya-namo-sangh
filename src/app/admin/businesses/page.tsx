@@ -112,7 +112,7 @@ export default function AdminBusinessesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4">
         <div>
           <h1 className="font-heading text-2xl font-semibold text-navy">
             Manage Businesses
@@ -121,7 +121,7 @@ export default function AdminBusinessesPage() {
             Review and manage business directory listings
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={loadBusinesses}
             className="rounded-md border border-saffron-300 px-4 py-2 text-sm font-medium text-navy hover:bg-saffron-50"
@@ -131,7 +131,7 @@ export default function AdminBusinessesPage() {
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value as BusinessStatus | "all")}
-            className="rounded-md border border-saffron-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+            className="flex-1 sm:flex-none rounded-md border border-saffron-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
           >
             <option value="all">All ({businesses.length})</option>
             <option value="pending_payment">

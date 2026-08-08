@@ -221,7 +221,7 @@ export default function ProfilePage() {
         <h2 className="font-heading text-lg font-semibold text-navy">
           Member details
         </h2>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm text-navy/70 mb-1">
               First name

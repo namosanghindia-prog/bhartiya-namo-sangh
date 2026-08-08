@@ -381,11 +381,11 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
   const initials = `${member.first_name[0]}${member.last_name[0]}`;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full max-w-[360px]">
       {/* Card */}
       <div
         ref={cardRef}
-        className="w-[360px] rounded-xl overflow-hidden shadow-lg border border-saffron-200 bg-white"
+        className="w-full rounded-xl overflow-hidden shadow-lg border border-saffron-200 bg-white"
       >
         {/* Tricolor header */}
         <div className="h-3 flex">
@@ -532,7 +532,7 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
 
       {/* Download buttons */}
       {showDownload && (
-        <div className="w-[360px] flex gap-2">
+        <div className="w-full flex gap-2">
           <button
             onClick={handleDownloadPng}
             className="flex-1 rounded-md bg-saffron-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-saffron-800 transition-colors flex items-center justify-center gap-2"
