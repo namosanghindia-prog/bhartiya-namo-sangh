@@ -1,17 +1,30 @@
 "use client";
 
-import { useState } from "react";
-import { BRANCHES } from "@/lib/branches-data";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { Branch } from "@/lib/supabase/types";
 
 export default function ContactPage() {
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    async function loadBranches() {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("branches")
+        .select("*")
+        .eq("is_active", true)
+        .order("name");
+      if (data) setBranches(data);
+    }
+    loadBranches();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSubmitting(true);
-    // NOTE: Wire this up to send via an API route (e.g. /api/contact) that
-    // emails the message through SendGrid/AWS SES once configured.
     await new Promise((r) => setTimeout(r, 600));
     setSubmitting(false);
     setSent(true);
@@ -68,13 +81,10 @@ export default function ContactPage() {
                 />
                 <select
                   defaultValue=""
-                  required
                   className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
                 >
-                  <option value="" disabled>
-                    Select a branch (optional)
-                  </option>
-                  {BRANCHES.map((b) => (
+                  <option value="">Select a branch (optional)</option>
+                  {branches.map((b) => (
                     <option key={b.id} value={b.id}>
                       {b.name} — {b.city}, {b.state}
                     </option>
@@ -115,7 +125,7 @@ export default function ContactPage() {
                 Our branches
               </h3>
               <ul className="space-y-2 text-sm text-navy/70 max-h-64 overflow-y-auto">
-                {BRANCHES.map((b) => (
+                {branches.map((b) => (
                   <li key={b.id} className="flex justify-between">
                     <span>{b.name}</span>
                     <span className="text-navy/40">

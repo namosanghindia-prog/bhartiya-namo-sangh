@@ -1,15 +1,41 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { BRANCHES, STATES, type Branch } from "@/lib/branches-data";
+import { useMemo, useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { Branch } from "@/lib/supabase/types";
 
 export default function BranchesPage() {
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [stateFilter, setStateFilter] = useState("all");
   const [selected, setSelected] = useState<Branch | null>(null);
 
+  useEffect(() => {
+    async function loadBranches() {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("branches")
+        .select("*")
+        .eq("is_active", true)
+        .order("name");
+
+      if (error) {
+        console.error("Failed to load branches:", error);
+      } else if (data) {
+        setBranches(data);
+      }
+      setLoading(false);
+    }
+    loadBranches();
+  }, []);
+
+  const states = useMemo(() => {
+    return Array.from(new Set(branches.map((b) => b.state))).sort();
+  }, [branches]);
+
   const filtered = useMemo(() => {
-    return BRANCHES.filter((b) => {
+    return branches.filter((b) => {
       const matchesQuery =
         query.trim() === "" ||
         b.name.toLowerCase().includes(query.toLowerCase()) ||
@@ -17,7 +43,7 @@ export default function BranchesPage() {
       const matchesState = stateFilter === "all" || b.state === stateFilter;
       return matchesQuery && matchesState;
     });
-  }, [query, stateFilter]);
+  }, [branches, query, stateFilter]);
 
   return (
     <>
@@ -28,8 +54,7 @@ export default function BranchesPage() {
             Our Branches
           </h1>
           <p className="mt-4 text-lg text-white/90 max-w-2xl mx-auto">
-            {BRANCHES.length} branches and growing, serving communities
-            across India
+            {loading ? "Loading..." : `${branches.length} branches and growing, serving communities across India`}
           </p>
         </div>
       </section>
@@ -51,7 +76,7 @@ export default function BranchesPage() {
               className="rounded-md border border-saffron-200 px-4 py-2 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-saffron-400"
             >
               <option value="all">All States</option>
-              {STATES.map((s) => (
+              {states.map((s) => (
                 <option key={s} value={s}>
                   {s}
                 </option>
@@ -66,7 +91,9 @@ export default function BranchesPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Grid */}
           <div className="lg:col-span-2">
-            {filtered.length === 0 ? (
+            {loading ? (
+              <p className="text-navy/60 text-sm">Loading branches...</p>
+            ) : filtered.length === 0 ? (
               <p className="text-navy/60 text-sm">
                 No branches match your search.
               </p>
@@ -90,7 +117,7 @@ export default function BranchesPage() {
                       {branch.city}, {branch.state}
                     </p>
                     <p className="mt-2 text-xs text-navy/50">
-                      {branch.memberCount.toLocaleString()} members
+                      {branch.member_count.toLocaleString()} members
                     </p>
                   </button>
                 ))}
@@ -116,21 +143,33 @@ export default function BranchesPage() {
                     <div className="flex justify-between">
                       <dt className="text-navy/60">Branch Manager</dt>
                       <dd className="font-medium text-navy">
-                        {selected.managerName}
+                        {selected.manager_name || "—"}
                       </dd>
                     </div>
                     <div className="flex justify-between">
                       <dt className="text-navy/60">Members</dt>
                       <dd className="font-medium text-navy">
-                        {selected.memberCount.toLocaleString()}
+                        {selected.member_count.toLocaleString()}
                       </dd>
                     </div>
                     <div className="flex justify-between">
                       <dt className="text-navy/60">Established</dt>
                       <dd className="font-medium text-navy">
-                        {selected.establishedYear}
+                        {selected.established_year || "—"}
                       </dd>
                     </div>
+                    {selected.phone && (
+                      <div className="flex justify-between">
+                        <dt className="text-navy/60">Phone</dt>
+                        <dd className="font-medium text-navy">{selected.phone}</dd>
+                      </div>
+                    )}
+                    {selected.email && (
+                      <div className="flex justify-between">
+                        <dt className="text-navy/60">Email</dt>
+                        <dd className="font-medium text-navy">{selected.email}</dd>
+                      </div>
+                    )}
                   </dl>
                   <div className="mt-6 flex gap-3">
                     <a
