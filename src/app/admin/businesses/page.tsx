@@ -28,6 +28,7 @@ export default function AdminBusinessesPage() {
   }, []);
 
   async function loadBusinesses() {
+    setLoading(true);
     const supabase = createClient();
     const { data, error } = await supabase
       .from("businesses")

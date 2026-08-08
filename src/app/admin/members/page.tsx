@@ -49,6 +49,7 @@ export default function AdminMembersPage() {
   const [processing, setProcessing] = useState<string | null>(null);
 
   async function loadData() {
+    setLoading(true);
     const supabase = createClient();
 
     const [membersRes, branchesRes] = await Promise.all([

@@ -89,6 +89,7 @@ export default function AdminEventsPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
 
   async function loadEvents() {
+    setLoading(true);
     const supabase = createClient();
 
     const [eventsRes, branchesRes] = await Promise.all([

@@ -63,6 +63,7 @@ export default function AdminDonationsPage() {
   });
 
   async function loadDonations() {
+    setLoading(true);
     const supabase = createClient();
     const { data, error } = await supabase
       .from("donations")

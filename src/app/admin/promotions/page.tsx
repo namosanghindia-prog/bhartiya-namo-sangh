@@ -32,6 +32,7 @@ export default function AdminPromotionsPage() {
   }, []);
 
   async function loadPromotions() {
+    setLoading(true);
     const supabase = createClient();
     const { data, error } = await supabase
       .from("business_promotions")
