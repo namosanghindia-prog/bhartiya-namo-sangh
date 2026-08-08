@@ -49,8 +49,15 @@ function LoginForm() {
       const pendingAvatar = sessionStorage.getItem("pending_avatar");
       const pendingAvatarType = sessionStorage.getItem("pending_avatar_type");
 
+      console.log("[login] Checking for pending avatar:", {
+        hasPendingAvatar: !!pendingAvatar,
+        hasPendingAvatarType: !!pendingAvatarType,
+        avatarLength: pendingAvatar?.length,
+      });
+
       if (pendingAvatar && pendingAvatarType) {
         try {
+          console.log("[login] Processing pending avatar upload...");
           const base64Data = pendingAvatar.split(",")[1];
           const byteCharacters = atob(base64Data);
           const byteNumbers = new Array(byteCharacters.length);
@@ -63,25 +70,37 @@ function LoginForm() {
           const ext = pendingAvatarType.split("/")[1] === "jpeg" ? "jpg" : pendingAvatarType.split("/")[1];
           const filePath = `${signInData.user.id}/avatar.${ext}`;
 
+          console.log("[login] Uploading avatar to storage:", filePath);
           const { error: uploadError } = await supabase.storage
             .from("avatars")
             .upload(filePath, blob, { upsert: true });
 
-          if (!uploadError) {
+          if (uploadError) {
+            console.error("[login] Avatar upload failed:", uploadError);
+          } else {
+            console.log("[login] Avatar uploaded successfully, getting public URL...");
             const { data: { publicUrl } } = supabase.storage
               .from("avatars")
               .getPublicUrl(filePath);
 
-            await supabase
+            console.log("[login] Public URL:", publicUrl);
+            const { error: updateError } = await supabase
               .from("members")
               .update({ avatar_url: publicUrl })
               .eq("id", signInData.user.id);
+
+            if (updateError) {
+              console.error("[login] Failed to update member avatar_url:", updateError);
+            } else {
+              console.log("[login] Member avatar_url updated successfully");
+            }
           }
 
           sessionStorage.removeItem("pending_avatar");
           sessionStorage.removeItem("pending_avatar_type");
+          console.log("[login] Cleared pending avatar from sessionStorage");
         } catch (err) {
-          console.error("Failed to upload pending avatar:", err);
+          console.error("[login] Failed to upload pending avatar:", err);
         }
       }
 
