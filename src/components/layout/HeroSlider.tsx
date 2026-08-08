@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { DEFAULT_SLIDES, type Slide } from "@/lib/slider-types";
 
@@ -9,6 +9,8 @@ export default function HeroSlider() {
   const [slides, setSlides] = useState<Slide[]>(DEFAULT_SLIDES);
   const [index, setIndex] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const containerRef = useRef<HTMLElement>(null);
+  const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,6 +88,28 @@ export default function HeroSlider() {
     if (index >= slides.length) setIndex(0);
   }, [slides.length, index]);
 
+  // Touch swipe handlers
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null) return;
+
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartX.current - touchEndX;
+    const threshold = 50;
+
+    if (Math.abs(diff) > threshold) {
+      if (diff > 0) {
+        next();
+      } else {
+        prev();
+      }
+    }
+    touchStartX.current = null;
+  }
+
   const slide = slides[index];
   if (!slide) return null;
 
@@ -94,10 +118,13 @@ export default function HeroSlider() {
 
   return (
     <section
+      ref={containerRef}
       className="relative text-white overflow-hidden transition-colors duration-700"
       style={hasImage ? undefined : { backgroundColor: slide.bgColor }}
       aria-live="polite"
       aria-busy={!loaded}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Background image */}
       {hasImage && (
@@ -113,34 +140,34 @@ export default function HeroSlider() {
       {/* Gradient overlay - stronger at bottom where text sits */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/30 to-black/70 z-10" />
 
-      {/* Content container - bottom anchored */}
-      <div className="relative aspect-[2.4/1] min-h-[400px] flex flex-col justify-end z-10">
-        <div className="mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 pb-16 sm:pb-20 text-center">
+      {/* Content container - responsive height per breakpoint */}
+      <div className="relative min-h-[420px] sm:min-h-[480px] lg:min-h-[560px] flex flex-col justify-end z-10">
+        <div className="mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 pb-20 sm:pb-16 lg:pb-20 text-center">
           {isPromoSlide && (
-            <span className="inline-block mb-2 px-3 py-1 rounded-full bg-saffron-700/80 text-xs font-medium text-white">
+            <span className="inline-block mb-2 sm:mb-3 px-3 py-1 rounded-full bg-saffron-700/80 text-xs font-medium text-white">
               Sponsored
             </span>
           )}
-          <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight drop-shadow-lg">
+          <h1 className="font-heading text-2xl sm:text-4xl lg:text-5xl xl:text-6xl font-semibold tracking-tight drop-shadow-lg leading-tight">
             {slide.headline}
           </h1>
-          <p className="mt-4 sm:mt-6 text-lg sm:text-xl text-white/90 max-w-2xl mx-auto drop-shadow">
+          <p className="mt-3 sm:mt-4 lg:mt-6 text-sm sm:text-lg lg:text-xl text-white/90 max-w-2xl mx-auto drop-shadow leading-relaxed px-2">
             {slide.subtext}
           </p>
-          <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="mt-5 sm:mt-6 lg:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4 sm:px-0">
             {isPromoSlide ? (
               <a
                 href={slide.ctaHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full sm:w-auto rounded-md bg-navy px-8 py-3 text-sm font-semibold text-white hover:bg-navy-light transition-colors"
+                className="w-full sm:w-auto rounded-md bg-navy px-6 sm:px-8 py-3.5 sm:py-3 text-sm font-semibold text-white hover:bg-navy-light transition-colors min-h-[48px] flex items-center justify-center"
               >
                 {slide.ctaLabel}
               </a>
             ) : (
               <Link
                 href={slide.ctaHref}
-                className="w-full sm:w-auto rounded-md bg-navy px-8 py-3 text-sm font-semibold text-white hover:bg-navy-light transition-colors"
+                className="w-full sm:w-auto rounded-md bg-navy px-6 sm:px-8 py-3.5 sm:py-3 text-sm font-semibold text-white hover:bg-navy-light transition-colors min-h-[48px] flex items-center justify-center"
               >
                 {slide.ctaLabel}
               </Link>
@@ -148,7 +175,7 @@ export default function HeroSlider() {
             {!isPromoSlide && (
               <Link
                 href="/donate"
-                className="w-full sm:w-auto rounded-md bg-white px-8 py-3 text-sm font-semibold text-saffron-800 hover:bg-saffron-50 transition-colors"
+                className="w-full sm:w-auto rounded-md bg-white px-6 sm:px-8 py-3.5 sm:py-3 text-sm font-semibold text-saffron-800 hover:bg-saffron-50 transition-colors min-h-[48px] flex items-center justify-center"
               >
                 Donate Now
               </Link>
@@ -157,7 +184,7 @@ export default function HeroSlider() {
         </div>
       </div>
 
-      {/* Arrows */}
+      {/* Arrows - hidden on mobile, visible from sm+ */}
       {slides.length > 1 && (
         <>
           <button
@@ -177,16 +204,16 @@ export default function HeroSlider() {
             ›
           </button>
 
-          {/* Dots - positioned above the text content */}
-          <div className="absolute bottom-4 sm:bottom-5 left-1/2 -translate-x-1/2 flex gap-2 z-30">
+          {/* Dots - positioned with enough clearance from text */}
+          <div className="absolute bottom-3 sm:bottom-4 lg:bottom-5 left-1/2 -translate-x-1/2 flex gap-2 z-30">
             {slides.map((s, i) => (
               <button
                 key={s.id}
                 type="button"
                 onClick={() => setIndex(i)}
                 aria-label={`Go to slide ${i + 1}`}
-                className={`h-2 rounded-full transition-all ${
-                  i === index ? "w-6 bg-white" : "w-2 bg-white/40"
+                className={`h-2.5 sm:h-2 rounded-full transition-all ${
+                  i === index ? "w-6 sm:w-6 bg-white" : "w-2.5 sm:w-2 bg-white/40"
                 }`}
               />
             ))}
