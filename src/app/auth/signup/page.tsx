@@ -123,7 +123,7 @@ export default function SignupPage() {
 
     const membershipFeeAmount = MEMBERSHIP_TIERS[membershipType].price;
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -146,15 +146,30 @@ export default function SignupPage() {
     setSubmitting(false);
 
     if (signUpError) {
-      if (signUpError.message.includes("already registered")) {
-        setError("This email is already registered. Please login instead.");
-      } else if (signUpError.message.includes("valid email")) {
+      const msg = signUpError.message.toLowerCase();
+      if (
+        msg.includes("already registered") ||
+        msg.includes("already exists") ||
+        msg.includes("user already")
+      ) {
+        setError("EMAIL_EXISTS");
+        return;
+      }
+      if (msg.includes("valid email")) {
         setError("Please enter a valid email address.");
-      } else if (signUpError.message.includes("password")) {
+      } else if (msg.includes("password")) {
         setError("Password must be at least 8 characters with a mix of letters and numbers.");
       } else {
         setError(signUpError.message);
       }
+      return;
+    }
+
+    if (
+      signUpData?.user &&
+      (!signUpData.user.identities || signUpData.user.identities.length === 0)
+    ) {
+      setError("EMAIL_EXISTS");
       return;
     }
 
@@ -568,9 +583,22 @@ export default function SignupPage() {
         </div>
 
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 rounded-md px-3 py-2">
-            {error}
-          </p>
+          <div className="text-sm text-red-600 bg-red-50 rounded-md px-3 py-2">
+            {error === "EMAIL_EXISTS" ? (
+              <>
+                An account with this email already exists. Please{" "}
+                <Link
+                  href="/auth/login"
+                  className="font-medium underline hover:text-red-700"
+                >
+                  log in instead
+                </Link>
+                .
+              </>
+            ) : (
+              error
+            )}
+          </div>
         )}
 
         <button
