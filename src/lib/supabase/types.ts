@@ -1,7 +1,7 @@
 // Enums
 export type MemberRole = "member" | "branch_admin" | "admin" | "super_admin";
 export type MemberStatus = "active" | "inactive" | "suspended" | "pending" | "approved_awaiting_payment";
-export type MembershipType = "normal" | "premium" | "lifetime";
+export type MembershipType = "volunteer" | "normal" | "premium" | "lifetime";
 export type MembershipPaymentStatus = "pending" | "submitted" | "confirmed";
 export type Gender = "male" | "female" | "other";
 export type EventCategory = "Social" | "Charity" | "Environmental" | "Education" | "Political" | "Cultural" | "Sports" | "Health";

@@ -17,6 +17,7 @@ interface PendingPayment {
 }
 
 const MEMBERSHIP_LABELS: Record<string, string> = {
+  volunteer: "Volunteer",
   normal: "Normal",
   premium: "Premium",
   lifetime: "Lifetime",

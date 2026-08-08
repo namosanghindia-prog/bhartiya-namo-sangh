@@ -20,6 +20,7 @@ function formatDate(dateStr: string): string {
 }
 
 const MEMBERSHIP_TYPE_LABELS: Record<string, string> = {
+  volunteer: "Volunteer Member",
   normal: "Member",
   premium: "Premium Member",
   lifetime: "Lifetime Member",
@@ -126,7 +127,7 @@ export default async function VerifyMemberPage({ params }: Props) {
             </p>
 
             {/* Membership type badge */}
-            {verifiedMember.membership_type && verifiedMember.membership_type !== "normal" && (
+            {verifiedMember.membership_type && verifiedMember.membership_type !== "normal" && verifiedMember.membership_type !== "volunteer" && (
               <div className="flex justify-center mb-4">
                 <span
                   className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${

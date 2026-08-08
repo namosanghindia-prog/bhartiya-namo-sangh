@@ -120,25 +120,33 @@ export default function AdminBusinessesPage() {
             Review and manage business directory listings
           </p>
         </div>
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value as BusinessStatus | "all")}
-          className="rounded-md border border-saffron-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
-        >
-          <option value="all">All ({businesses.length})</option>
-          <option value="pending_payment">
-            Pending Payment ({businesses.filter((b) => b.status === "pending_payment").length})
-          </option>
-          <option value="active">
-            Active ({businesses.filter((b) => b.status === "active").length})
-          </option>
-          <option value="rejected">
-            Rejected ({businesses.filter((b) => b.status === "rejected").length})
-          </option>
-          <option value="expired">
-            Expired ({businesses.filter((b) => b.status === "expired").length})
-          </option>
-        </select>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={loadBusinesses}
+            className="rounded-md border border-saffron-300 px-4 py-2 text-sm font-medium text-navy hover:bg-saffron-50"
+          >
+            Refresh
+          </button>
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value as BusinessStatus | "all")}
+            className="rounded-md border border-saffron-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+          >
+            <option value="all">All ({businesses.length})</option>
+            <option value="pending_payment">
+              Pending Payment ({businesses.filter((b) => b.status === "pending_payment").length})
+            </option>
+            <option value="active">
+              Active ({businesses.filter((b) => b.status === "active").length})
+            </option>
+            <option value="rejected">
+              Rejected ({businesses.filter((b) => b.status === "rejected").length})
+            </option>
+            <option value="expired">
+              Expired ({businesses.filter((b) => b.status === "expired").length})
+            </option>
+          </select>
+        </div>
       </div>
 
       {filtered.length === 0 ? (

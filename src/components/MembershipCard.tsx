@@ -20,6 +20,7 @@ interface MembershipCardProps {
 }
 
 const MEMBERSHIP_TYPE_LABELS: Record<string, { label: string; labelHi: string }> = {
+  volunteer: { label: "Volunteer Member", labelHi: "स्वयंसेवक सदस्य" },
   normal: { label: "Member", labelHi: "सदस्य" },
   premium: { label: "Premium Member", labelHi: "प्रीमियम सदस्य" },
   lifetime: { label: "Lifetime Member", labelHi: "आजीवन सदस्य" },

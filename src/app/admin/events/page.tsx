@@ -280,12 +280,20 @@ export default function AdminEventsPage() {
         <h1 className="font-heading text-2xl font-semibold text-navy">
           Events
         </h1>
-        <button
-          onClick={openNewEventModal}
-          className="rounded-md bg-saffron-700 px-4 py-2 text-sm font-semibold text-white hover:bg-saffron-800"
-        >
-          + New Event
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={loadEvents}
+            className="rounded-md border border-saffron-300 px-4 py-2 text-sm font-medium text-navy hover:bg-saffron-50"
+          >
+            Refresh
+          </button>
+          <button
+            onClick={openNewEventModal}
+            className="rounded-md bg-saffron-700 px-4 py-2 text-sm font-semibold text-white hover:bg-saffron-800"
+          >
+            + New Event
+          </button>
+        </div>
       </div>
 
       <input

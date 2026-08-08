@@ -181,12 +181,52 @@ export default function AdminMembersPage() {
     );
   }
 
+  async function handleDelete(member: Member) {
+    const message = `Are you sure you want to PERMANENTLY DELETE ${member.first_name} ${member.last_name}?\n\n` +
+      `⚠️ This action CANNOT be undone.\n\n` +
+      `This will also delete all related records:\n` +
+      `• Event registrations\n` +
+      `• Donations\n` +
+      `• Businesses\n` +
+      `• Messages\n` +
+      `• Activity logs\n\n` +
+      `Consider using "Deactivate" instead if you want to preserve their history.`;
+
+    if (!confirm(message)) {
+      return;
+    }
+
+    setProcessing(member.id);
+    const supabase = createClient();
+
+    const { error } = await supabase
+      .from("members")
+      .delete()
+      .eq("id", member.id);
+
+    setProcessing(null);
+
+    if (error) {
+      console.error("Failed to delete member:", error);
+      alert("Failed to delete member: " + error.message);
+      return;
+    }
+
+    setMembers((prev) => prev.filter((m) => m.id !== member.id));
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-heading text-2xl font-semibold text-navy">
           Members
         </h1>
+        <button
+          onClick={loadData}
+          className="rounded-md border border-saffron-300 px-4 py-2 text-sm font-medium text-navy hover:bg-saffron-50"
+        >
+          Refresh
+        </button>
       </div>
 
       {/* Filters */}
@@ -300,7 +340,7 @@ export default function AdminMembersPage() {
                           disabled={processing === m.id}
                           className={`text-xs font-medium ${
                             m.status === "active"
-                              ? "text-red-600 hover:text-red-700"
+                              ? "text-orange-600 hover:text-orange-700"
                               : "text-forest hover:text-forest/80"
                           } disabled:opacity-50`}
                         >
@@ -311,6 +351,13 @@ export default function AdminMembersPage() {
                             : "Activate"}
                         </button>
                       )}
+                      <button
+                        onClick={() => handleDelete(m)}
+                        disabled={processing === m.id}
+                        className="text-xs font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
+                      >
+                        {processing === m.id ? "..." : "Delete"}
+                      </button>
                     </td>
                   </tr>
                 ))}

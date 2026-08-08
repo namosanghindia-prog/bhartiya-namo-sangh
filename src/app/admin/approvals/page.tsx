@@ -21,6 +21,7 @@ interface PendingMember {
 }
 
 const MEMBERSHIP_LABELS: Record<string, string> = {
+  volunteer: "Volunteer (₹101/year)",
   normal: "Normal (₹1,100/year)",
   premium: "Premium (₹11,000/year)",
   lifetime: "Lifetime (₹99,999)",

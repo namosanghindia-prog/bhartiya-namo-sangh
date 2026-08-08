@@ -7,6 +7,7 @@ import { Suspense, useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 const MEMBERSHIP_LABELS: Record<string, string> = {
+  volunteer: "Volunteer Membership",
   normal: "Normal Membership",
   premium: "Premium Membership",
   lifetime: "Lifetime Membership",

@@ -183,7 +183,14 @@ export default function AdminPromotionsPage() {
             Review and manage business slider promotions
           </p>
         </div>
-        <select
+        <div className="flex items-center gap-2">
+          <button
+            onClick={loadPromotions}
+            className="rounded-md border border-saffron-300 px-4 py-2 text-sm font-medium text-navy hover:bg-saffron-50"
+          >
+            Refresh
+          </button>
+          <select
           value={filter}
           onChange={(e) => setFilter(e.target.value as PromotionStatus | "all")}
           className="rounded-md border border-saffron-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
@@ -208,6 +215,7 @@ export default function AdminPromotionsPage() {
             Rejected ({promotions.filter((p) => p.status === "rejected").length})
           </option>
         </select>
+        </div>
       </div>
 
       {filtered.length === 0 ? (

@@ -256,12 +256,20 @@ export default function AdminDonationsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-heading text-2xl font-semibold text-navy">Donations</h1>
-        <button
-          onClick={() => setShowForm(true)}
-          className="rounded-md bg-saffron-700 px-4 py-2 text-sm font-semibold text-white hover:bg-saffron-800"
-        >
-          + Record Donation
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={loadDonations}
+            className="rounded-md border border-saffron-300 px-4 py-2 text-sm font-medium text-navy hover:bg-saffron-50"
+          >
+            Refresh
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="rounded-md bg-saffron-700 px-4 py-2 text-sm font-semibold text-white hover:bg-saffron-800"
+          >
+            + Record Donation
+          </button>
+        </div>
       </div>
 
       {showForm && (

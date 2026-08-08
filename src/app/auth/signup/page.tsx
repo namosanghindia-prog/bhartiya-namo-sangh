@@ -16,12 +16,13 @@ export default function SignupPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [branchesLoading, setBranchesLoading] = useState(true);
   const [declarationAccepted, setDeclarationAccepted] = useState(false);
-  const [membershipType, setMembershipType] = useState<"normal" | "premium" | "lifetime">("normal");
+  const [membershipType, setMembershipType] = useState<"volunteer" | "normal" | "premium" | "lifetime">("volunteer");
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const MEMBERSHIP_TIERS = {
+    volunteer: { name: "Volunteer", nameHi: "स्वयंसेवक", price: 101, period: "/year", periodHi: "/वर्ष" },
     normal: { name: "Normal", nameHi: "सामान्य", price: 1100, period: "/year", periodHi: "/वर्ष" },
     premium: { name: "Premium", nameHi: "प्रीमियम", price: 11000, period: "/year", periodHi: "/वर्ष" },
     lifetime: { name: "Lifetime", nameHi: "आजीवन", price: 99999, period: "one-time", periodHi: "एकमुश्त" },
