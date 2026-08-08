@@ -185,12 +185,13 @@ export default function AdminMembersPage() {
   async function handleDelete(member: Member) {
     const message = `Are you sure you want to PERMANENTLY DELETE ${member.first_name} ${member.last_name}?\n\n` +
       `⚠️ This action CANNOT be undone.\n\n` +
-      `This will also delete all related records:\n` +
+      `This will delete their login account and all related records:\n` +
       `• Event registrations\n` +
       `• Donations\n` +
       `• Businesses\n` +
       `• Messages\n` +
       `• Activity logs\n\n` +
+      `They will be able to sign up again with the same email as a new member.\n\n` +
       `Consider using "Deactivate" instead if you want to preserve their history.`;
 
     if (!confirm(message)) {
@@ -198,22 +199,27 @@ export default function AdminMembersPage() {
     }
 
     setProcessing(member.id);
-    const supabase = createClient();
 
-    const { error } = await supabase
-      .from("members")
-      .delete()
-      .eq("id", member.id);
+    try {
+      const response = await fetch("/api/admin/delete-member", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId: member.id }),
+      });
 
-    setProcessing(null);
+      const result = await response.json();
 
-    if (error) {
-      console.error("Failed to delete member:", error);
-      alert("Failed to delete member: " + error.message);
-      return;
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to delete member");
+      }
+
+      setMembers((prev) => prev.filter((m) => m.id !== member.id));
+    } catch (err) {
+      console.error("Failed to delete member:", err);
+      alert("Failed to delete member: " + (err instanceof Error ? err.message : "Unknown error"));
+    } finally {
+      setProcessing(null);
     }
-
-    setMembers((prev) => prev.filter((m) => m.id !== member.id));
   }
 
   return (
