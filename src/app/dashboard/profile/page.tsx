@@ -41,6 +41,12 @@ export default function ProfilePage() {
     setSaved(false);
     setError(null);
 
+    if (!member.avatar_url) {
+      setError("Profile photo is required. Please upload a photo before saving.");
+      setSaving(false);
+      return;
+    }
+
     const formData = new FormData(e.currentTarget);
     const updates = {
       first_name: formData.get("firstName") as string,
@@ -174,7 +180,9 @@ export default function ProfilePage() {
           </div>
         </div>
         <div className="mt-4 pt-4 border-t border-saffron-100">
-          <label className="block text-sm text-navy/70 mb-2">Profile Photo</label>
+          <label className="block text-sm text-navy/70 mb-2">
+            Profile Photo <span className="text-red-600">*</span>
+          </label>
           <div className="flex items-center gap-3">
             <input
               ref={fileInputRef}
@@ -187,12 +195,21 @@ export default function ProfilePage() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="rounded-md border border-saffron-300 px-4 py-2 text-sm font-medium text-navy hover:bg-saffron-50 disabled:opacity-60"
+              className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60 ${
+                member.avatar_url
+                  ? "border-saffron-300 text-navy hover:bg-saffron-50"
+                  : "border-red-300 bg-red-50 text-red-700 hover:bg-red-100"
+              }`}
             >
-              {uploading ? "Uploading..." : "Change Photo"}
+              {uploading ? "Uploading..." : member.avatar_url ? "Change Photo" : "Upload Photo"}
             </button>
             <span className="text-xs text-navy/50">JPG, PNG or WebP. Max 2MB.</span>
           </div>
+          {!member.avatar_url && (
+            <p className="mt-2 text-xs text-red-600">
+              Profile photo is required to complete your profile.
+            </p>
+          )}
         </div>
       </div>
 
