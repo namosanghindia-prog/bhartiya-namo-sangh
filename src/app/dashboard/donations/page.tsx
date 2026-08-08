@@ -1,4 +1,8 @@
-import { MY_DONATIONS } from "@/lib/dashboard-data";
+"use client";
+
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { Donation } from "@/lib/supabase/types";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", {
@@ -9,8 +13,68 @@ function formatDate(iso: string) {
 }
 
 export default function MyDonationsPage() {
-  const total = MY_DONATIONS.reduce((sum, d) => sum + d.amount, 0);
-  const avg = Math.round(total / MY_DONATIONS.length);
+  const [donations, setDonations] = useState<Donation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [downloadingReceipt, setDownloadingReceipt] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadDonations() {
+      const supabase = createClient();
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("donations")
+        .select("*")
+        .eq("member_id", user.id)
+        .order("donated_at", { ascending: false });
+
+      if (error) {
+        console.error("Failed to load donations:", error);
+      } else if (data) {
+        setDonations(data);
+      }
+      setLoading(false);
+    }
+
+    loadDonations();
+  }, []);
+
+  async function downloadReceipt(donationId: string) {
+    setDownloadingReceipt(donationId);
+
+    const res = await fetch("/api/donations/receipt-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ donationId }),
+    });
+
+    setDownloadingReceipt(null);
+
+    if (!res.ok) {
+      const data = await res.json();
+      alert("Failed to get receipt: " + (data.error || "Unknown error"));
+      return;
+    }
+
+    const { url } = await res.json();
+    window.open(url, "_blank");
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-navy/60">Loading donations...</div>
+      </div>
+    );
+  }
+
+  const total = donations.reduce((sum, d) => sum + d.amount, 0);
+  const avg = donations.length > 0 ? Math.round(total / donations.length) : 0;
   const nextMilestone = 50000;
   const pct = Math.min(Math.round((total / nextMilestone) * 100), 100);
 
@@ -20,7 +84,6 @@ export default function MyDonationsPage() {
         My Donations
       </h1>
 
-      {/* Stats */}
       <div className="rounded-xl border border-saffron-200 bg-white p-6">
         <div className="grid grid-cols-3 gap-4 text-center mb-4">
           <div>
@@ -31,7 +94,7 @@ export default function MyDonationsPage() {
           </div>
           <div>
             <div className="font-heading text-2xl font-semibold text-saffron-700">
-              {MY_DONATIONS.length}
+              {donations.length}
             </div>
             <div className="text-xs text-navy/60">Donations</div>
           </div>
@@ -57,7 +120,6 @@ export default function MyDonationsPage() {
         </div>
       </div>
 
-      {/* History table */}
       <div className="rounded-xl border border-saffron-200 bg-white overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-saffron-50 text-navy/70">
@@ -70,29 +132,48 @@ export default function MyDonationsPage() {
             </tr>
           </thead>
           <tbody>
-            {MY_DONATIONS.map((d, i) => (
-              <tr key={i} className="border-t border-saffron-100">
+            {donations.map((d) => (
+              <tr key={d.id} className="border-t border-saffron-100">
                 <td className="px-4 py-3 text-navy/70">
-                  {formatDate(d.date)}
+                  {formatDate(d.donated_at)}
                 </td>
                 <td className="px-4 py-3 font-medium text-navy">
                   ₹{d.amount.toLocaleString("en-IN")}
                 </td>
                 <td className="px-4 py-3 text-navy/70">{d.category}</td>
                 <td className="px-4 py-3">
-                  <span className="rounded-full bg-forest/10 px-2 py-0.5 text-xs font-medium text-forest">
-                    ✓ {d.status}
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      d.status === "verified"
+                        ? "bg-forest/10 text-forest"
+                        : "bg-orange-100 text-orange-700"
+                    }`}
+                  >
+                    {d.status === "verified" ? "✓ Received" : d.status}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <button className="text-xs font-medium text-saffron-700 hover:text-saffron-800">
-                    Download PDF
-                  </button>
+                  {d.receipt_url ? (
+                    <button
+                      onClick={() => downloadReceipt(d.id)}
+                      disabled={downloadingReceipt === d.id}
+                      className="text-xs font-medium text-saffron-700 hover:text-saffron-800 disabled:opacity-50"
+                    >
+                      {downloadingReceipt === d.id ? "..." : "Download PDF"}
+                    </button>
+                  ) : (
+                    <span className="text-xs text-navy/40">—</span>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        {donations.length === 0 && (
+          <div className="p-12 text-center text-navy/60">
+            You haven&apos;t made any donations yet.
+          </div>
+        )}
       </div>
 
       <a
