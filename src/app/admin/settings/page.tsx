@@ -9,8 +9,21 @@ interface OrgSettings {
   primary_email: string | null;
 }
 
+interface ContactSettings {
+  phone_primary: string | null;
+  phone_secondary: string | null;
+  whatsapp_number: string | null;
+  address_line: string | null;
+  city: string | null;
+  state: string | null;
+  pincode: string | null;
+  facebook_url: string | null;
+  instagram_url: string | null;
+  youtube_url: string | null;
+}
+
 export default function AdminSettingsPage() {
-  const [tab, setTab] = useState<"general" | "email" | "payments">("general");
+  const [tab, setTab] = useState<"general" | "contact" | "email" | "payments">("general");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -18,6 +31,18 @@ export default function AdminSettingsPage() {
     org_name: "",
     founded_year: null,
     primary_email: null,
+  });
+  const [contactSettings, setContactSettings] = useState<ContactSettings>({
+    phone_primary: null,
+    phone_secondary: null,
+    whatsapp_number: null,
+    address_line: null,
+    city: null,
+    state: null,
+    pincode: null,
+    facebook_url: null,
+    instagram_url: null,
+    youtube_url: null,
   });
 
   useEffect(() => {
@@ -27,7 +52,7 @@ export default function AdminSettingsPage() {
 
       const { data, error } = await supabase
         .from("organization_settings")
-        .select("org_name, founded_year, primary_email")
+        .select("org_name, founded_year, primary_email, phone_primary, phone_secondary, whatsapp_number, address_line, city, state, pincode, facebook_url, instagram_url, youtube_url")
         .eq("id", 1)
         .single();
 
@@ -38,6 +63,18 @@ export default function AdminSettingsPage() {
           org_name: data.org_name || "",
           founded_year: data.founded_year,
           primary_email: data.primary_email,
+        });
+        setContactSettings({
+          phone_primary: data.phone_primary,
+          phone_secondary: data.phone_secondary,
+          whatsapp_number: data.whatsapp_number,
+          address_line: data.address_line,
+          city: data.city,
+          state: data.state,
+          pincode: data.pincode,
+          facebook_url: data.facebook_url,
+          instagram_url: data.instagram_url,
+          youtube_url: data.youtube_url,
         });
       }
       setLoading(false);
@@ -72,14 +109,48 @@ export default function AdminSettingsPage() {
     setTimeout(() => setSaveSuccess(false), 3000);
   }
 
+  async function handleSaveContact() {
+    setSaving(true);
+    setSaveSuccess(false);
+
+    const supabase = createClient();
+
+    const { error } = await supabase
+      .from("organization_settings")
+      .update({
+        phone_primary: contactSettings.phone_primary?.trim() || null,
+        phone_secondary: contactSettings.phone_secondary?.trim() || null,
+        whatsapp_number: contactSettings.whatsapp_number?.trim() || null,
+        address_line: contactSettings.address_line?.trim() || null,
+        city: contactSettings.city?.trim() || null,
+        state: contactSettings.state?.trim() || null,
+        pincode: contactSettings.pincode?.trim() || null,
+        facebook_url: contactSettings.facebook_url?.trim() || null,
+        instagram_url: contactSettings.instagram_url?.trim() || null,
+        youtube_url: contactSettings.youtube_url?.trim() || null,
+      })
+      .eq("id", 1);
+
+    setSaving(false);
+
+    if (error) {
+      console.error("Failed to save contact settings:", error);
+      alert("Failed to save contact settings: " + error.message);
+      return;
+    }
+
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3000);
+  }
+
   return (
     <div className="space-y-6 max-w-2xl">
       <h1 className="font-heading text-2xl font-semibold text-navy">
         Settings
       </h1>
 
-      <div className="flex gap-2 border-b border-saffron-200">
-        {(["general", "email", "payments"] as const).map((t) => (
+      <div className="flex flex-wrap gap-2 border-b border-saffron-200">
+        {(["general", "contact", "email", "payments"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -89,7 +160,7 @@ export default function AdminSettingsPage() {
                 : "border-transparent text-navy/60 hover:text-navy"
             }`}
           >
-            {t}
+            {t === "contact" ? "Contact Info" : t}
           </button>
         ))}
       </div>
@@ -117,7 +188,7 @@ export default function AdminSettingsPage() {
                   className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm text-navy/70 mb-1">
                     Founded year
@@ -165,6 +236,197 @@ export default function AdminSettingsPage() {
                 {saveSuccess && (
                   <span className="text-sm text-forest font-medium">
                     Settings saved successfully
+                  </span>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {tab === "contact" && (
+        <div className="rounded-xl border border-saffron-200 bg-white p-6 space-y-4">
+          <h2 className="font-heading text-lg font-semibold text-navy">
+            Contact Information
+          </h2>
+          <p className="text-sm text-navy/60">
+            This information is displayed on the public Contact page.
+          </p>
+
+          {loading ? (
+            <p className="text-sm text-navy/60">Loading settings...</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm text-navy/70 mb-1">
+                    Primary Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={contactSettings.phone_primary || ""}
+                    onChange={(e) =>
+                      setContactSettings({ ...contactSettings, phone_primary: e.target.value })
+                    }
+                    placeholder="+91 11 4567 8900"
+                    className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-navy/70 mb-1">
+                    Secondary Phone (optional)
+                  </label>
+                  <input
+                    type="tel"
+                    value={contactSettings.phone_secondary || ""}
+                    onChange={(e) =>
+                      setContactSettings({ ...contactSettings, phone_secondary: e.target.value })
+                    }
+                    placeholder="+91 98765 43210"
+                    className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-navy/70 mb-1">
+                  WhatsApp Number (optional)
+                </label>
+                <input
+                  type="tel"
+                  value={contactSettings.whatsapp_number || ""}
+                  onChange={(e) =>
+                    setContactSettings({ ...contactSettings, whatsapp_number: e.target.value })
+                  }
+                  placeholder="+91 98765 43210"
+                  className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+                />
+              </div>
+
+              <hr className="border-saffron-100" />
+
+              <div>
+                <label className="block text-sm text-navy/70 mb-1">
+                  Address Line
+                </label>
+                <input
+                  type="text"
+                  value={contactSettings.address_line || ""}
+                  onChange={(e) =>
+                    setContactSettings({ ...contactSettings, address_line: e.target.value })
+                  }
+                  placeholder="123, Main Street, Sector 5"
+                  className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-sm text-navy/70 mb-1">
+                    City
+                  </label>
+                  <input
+                    type="text"
+                    value={contactSettings.city || ""}
+                    onChange={(e) =>
+                      setContactSettings({ ...contactSettings, city: e.target.value })
+                    }
+                    placeholder="New Delhi"
+                    className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-navy/70 mb-1">
+                    State
+                  </label>
+                  <input
+                    type="text"
+                    value={contactSettings.state || ""}
+                    onChange={(e) =>
+                      setContactSettings({ ...contactSettings, state: e.target.value })
+                    }
+                    placeholder="Delhi"
+                    className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-navy/70 mb-1">
+                    Pincode
+                  </label>
+                  <input
+                    type="text"
+                    value={contactSettings.pincode || ""}
+                    onChange={(e) =>
+                      setContactSettings({ ...contactSettings, pincode: e.target.value })
+                    }
+                    placeholder="110001"
+                    className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+                  />
+                </div>
+              </div>
+
+              <hr className="border-saffron-100" />
+
+              <p className="text-sm font-medium text-navy/70">
+                Social Media Links (optional)
+              </p>
+
+              <div>
+                <label className="block text-sm text-navy/70 mb-1">
+                  Facebook URL
+                </label>
+                <input
+                  type="url"
+                  value={contactSettings.facebook_url || ""}
+                  onChange={(e) =>
+                    setContactSettings({ ...contactSettings, facebook_url: e.target.value })
+                  }
+                  placeholder="https://facebook.com/yourpage"
+                  className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-navy/70 mb-1">
+                  Instagram URL
+                </label>
+                <input
+                  type="url"
+                  value={contactSettings.instagram_url || ""}
+                  onChange={(e) =>
+                    setContactSettings({ ...contactSettings, instagram_url: e.target.value })
+                  }
+                  placeholder="https://instagram.com/yourhandle"
+                  className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-navy/70 mb-1">
+                  YouTube URL
+                </label>
+                <input
+                  type="url"
+                  value={contactSettings.youtube_url || ""}
+                  onChange={(e) =>
+                    setContactSettings({ ...contactSettings, youtube_url: e.target.value })
+                  }
+                  placeholder="https://youtube.com/@yourchannel"
+                  className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  onClick={handleSaveContact}
+                  disabled={saving}
+                  className="rounded-md bg-saffron-700 px-5 py-2 text-sm font-semibold text-white hover:bg-saffron-800 disabled:opacity-60"
+                >
+                  {saving ? "Saving..." : "Update Contact Info"}
+                </button>
+                {saveSuccess && (
+                  <span className="text-sm text-forest font-medium">
+                    Contact info saved successfully
                   </span>
                 )}
               </div>
