@@ -13,6 +13,7 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [vipMessage, setVipMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -81,6 +82,62 @@ function LoginForm() {
           sessionStorage.removeItem("pending_avatar_type");
         } catch (err) {
           console.error("Failed to upload pending avatar:", err);
+        }
+      }
+
+      // Check for VIP coupon code in user metadata
+      const vipCouponCode = signInData.user.user_metadata?.vip_coupon_code;
+      if (vipCouponCode) {
+        try {
+          const { data: redeemResult, error: redeemError } = await supabase.rpc(
+            "redeem_vip_coupon",
+            { coupon_code: vipCouponCode, member_id: signInData.user.id }
+          );
+
+          // Clear the vip_coupon_code from metadata regardless of result
+          await supabase.auth.updateUser({
+            data: { vip_coupon_code: null },
+          });
+
+          if (redeemError) {
+            console.error("VIP coupon redemption error:", redeemError);
+            setVipMessage({
+              type: "error",
+              text: "This VIP code is invalid or already used. Your application will go through standard review.",
+            });
+            setSubmitting(false);
+            setTimeout(() => {
+              router.push(redirectTo);
+              router.refresh();
+            }, 3000);
+            return;
+          }
+
+          if (redeemResult === true) {
+            setVipMessage({
+              type: "success",
+              text: "🎉 VIP membership activated!",
+            });
+            setSubmitting(false);
+            setTimeout(() => {
+              router.push("/dashboard");
+              router.refresh();
+            }, 2000);
+            return;
+          } else {
+            setVipMessage({
+              type: "error",
+              text: "This VIP code is invalid or already used. Your application will go through standard review.",
+            });
+            setSubmitting(false);
+            setTimeout(() => {
+              router.push(redirectTo);
+              router.refresh();
+            }, 3000);
+            return;
+          }
+        } catch (err) {
+          console.error("Failed to redeem VIP coupon:", err);
         }
       }
     }
@@ -166,9 +223,21 @@ function LoginForm() {
           </p>
         )}
 
+        {vipMessage && (
+          <div
+            className={`text-sm rounded-md px-4 py-3 ${
+              vipMessage.type === "success"
+                ? "bg-forest/10 text-forest border border-forest/20"
+                : "bg-amber-50 text-amber-800 border border-amber-200"
+            }`}
+          >
+            {vipMessage.text}
+          </div>
+        )}
+
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || vipMessage !== null}
           className="w-full rounded-md bg-saffron-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-saffron-800 transition-colors disabled:opacity-60"
         >
           {submitting ? "Logging in..." : "Login"}

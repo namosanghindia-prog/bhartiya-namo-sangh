@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: "/admin/approvals", label: "Approvals", icon: "✅", badgeKey: "approvals" },
   { href: "/admin/membership-payments", label: "Membership Payments", icon: "💳", badgeKey: "membershipPayments" },
   { href: "/admin/members", label: "Members", icon: "👥" },
+  { href: "/admin/coupons", label: "VIP Coupons", icon: "🎟️" },
   { href: "/admin/businesses", label: "Businesses", icon: "🏪" },
   { href: "/admin/promotions", label: "Promotions", icon: "📣", badgeKey: "promotions" },
   { href: "/admin/events", label: "Events", icon: "📅" },

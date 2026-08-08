@@ -19,6 +19,8 @@ export default function SignupPage() {
   const [membershipType, setMembershipType] = useState<"volunteer" | "normal" | "premium" | "lifetime">("volunteer");
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [showVipCode, setShowVipCode] = useState(false);
+  const [vipCode, setVipCode] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const MEMBERSHIP_TIERS = {
@@ -122,7 +124,8 @@ export default function SignupPage() {
 
     const supabase = createClient();
 
-    const membershipFeeAmount = MEMBERSHIP_TIERS[membershipType].price;
+    const hasVipCode = showVipCode && vipCode.trim();
+    const membershipFeeAmount = hasVipCode ? 0 : MEMBERSHIP_TIERS[membershipType].price;
 
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
@@ -138,8 +141,9 @@ export default function SignupPage() {
           city,
           state,
           declaration_accepted: true,
-          membership_type: membershipType,
+          membership_type: hasVipCode ? null : membershipType,
           membership_fee_amount: membershipFeeAmount,
+          vip_coupon_code: hasVipCode ? vipCode.trim().toUpperCase() : null,
         },
       },
     });
@@ -426,75 +430,109 @@ export default function SignupPage() {
           </select>
         </div>
 
-        {/* Membership Type Selection */}
-        <div>
-          <label className="block text-sm font-medium text-navy/80 mb-2">
-            <span className="block">सदस्यता प्रकार चुनें</span>
-            <span className="text-xs text-navy/60">Select Membership Type</span>
-          </label>
-          <div className="grid grid-cols-1 gap-3">
-            {(Object.keys(MEMBERSHIP_TIERS) as Array<keyof typeof MEMBERSHIP_TIERS>).map((tier) => {
-              const info = MEMBERSHIP_TIERS[tier];
-              const isSelected = membershipType === tier;
-              const isLifetime = tier === "lifetime";
-              const isPremium = tier === "premium";
-              return (
-                <label
-                  key={tier}
-                  className={`relative flex items-center gap-3 rounded-lg border-2 p-3 cursor-pointer transition-all ${
-                    isSelected
-                      ? isLifetime
-                        ? "border-gold bg-gold/5"
-                        : isPremium
-                        ? "border-saffron-500 bg-saffron-50"
-                        : "border-saffron-400 bg-saffron-50"
-                      : "border-saffron-200 hover:border-saffron-300"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="membershipType"
-                    value={tier}
-                    checked={isSelected}
-                    onChange={() => setMembershipType(tier)}
-                    className="sr-only"
-                  />
-                  <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
-                    isSelected
-                      ? isLifetime
-                        ? "border-gold"
-                        : "border-saffron-600"
-                      : "border-saffron-300"
-                  }`}>
-                    {isSelected && (
-                      <div className={`h-2.5 w-2.5 rounded-full ${
-                        isLifetime ? "bg-gold" : "bg-saffron-600"
-                      }`} />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className={`font-semibold ${
-                        isLifetime ? "text-gold" : isPremium ? "text-saffron-700" : "text-navy"
-                      }`}>
-                        {info.nameHi} / {info.name}
-                      </span>
-                      {isLifetime && (
-                        <span className="text-[10px] bg-gold/20 text-gold px-1.5 py-0.5 rounded font-medium">
-                          BEST VALUE
-                        </span>
+        {/* VIP Code Toggle */}
+        <div className="border-t border-saffron-100 pt-4">
+          <button
+            type="button"
+            onClick={() => setShowVipCode(!showVipCode)}
+            className="text-sm font-medium text-saffron-700 hover:text-saffron-800 flex items-center gap-1"
+          >
+            <span>{showVipCode ? "−" : "+"}</span>
+            <span>Have a VIP Code?</span>
+          </button>
+
+          {showVipCode && (
+            <div className="mt-3 rounded-lg border border-purple-200 bg-purple-50 p-4">
+              <label className="block text-sm font-medium text-purple-800 mb-2">
+                Enter your VIP Code
+              </label>
+              <input
+                type="text"
+                value={vipCode}
+                onChange={(e) => setVipCode(e.target.value.toUpperCase())}
+                placeholder="VIP-XXXXXX"
+                className="w-full rounded-md border border-purple-300 px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-purple-400"
+              />
+              {vipCode.trim() && (
+                <p className="mt-2 text-xs text-purple-700">
+                  Your VIP code will grant you membership automatically — no tier selection or payment needed.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Membership Type Selection - hidden when VIP code is entered */}
+        {!(showVipCode && vipCode.trim()) && (
+          <div>
+            <label className="block text-sm font-medium text-navy/80 mb-2">
+              <span className="block">सदस्यता प्रकार चुनें</span>
+              <span className="text-xs text-navy/60">Select Membership Type</span>
+            </label>
+            <div className="grid grid-cols-1 gap-3">
+              {(Object.keys(MEMBERSHIP_TIERS) as Array<keyof typeof MEMBERSHIP_TIERS>).map((tier) => {
+                const info = MEMBERSHIP_TIERS[tier];
+                const isSelected = membershipType === tier;
+                const isLifetime = tier === "lifetime";
+                const isPremium = tier === "premium";
+                return (
+                  <label
+                    key={tier}
+                    className={`relative flex items-center gap-3 rounded-lg border-2 p-3 cursor-pointer transition-all ${
+                      isSelected
+                        ? isLifetime
+                          ? "border-gold bg-gold/5"
+                          : isPremium
+                          ? "border-saffron-500 bg-saffron-50"
+                          : "border-saffron-400 bg-saffron-50"
+                        : "border-saffron-200 hover:border-saffron-300"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="membershipType"
+                      value={tier}
+                      checked={isSelected}
+                      onChange={() => setMembershipType(tier)}
+                      className="sr-only"
+                    />
+                    <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
+                      isSelected
+                        ? isLifetime
+                          ? "border-gold"
+                          : "border-saffron-600"
+                        : "border-saffron-300"
+                    }`}>
+                      {isSelected && (
+                        <div className={`h-2.5 w-2.5 rounded-full ${
+                          isLifetime ? "bg-gold" : "bg-saffron-600"
+                        }`} />
                       )}
                     </div>
-                    <div className="text-sm text-navy/70">
-                      <span className="font-semibold text-navy">₹{info.price.toLocaleString("en-IN")}</span>
-                      <span className="text-xs"> {info.period}</span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`font-semibold ${
+                          isLifetime ? "text-gold" : isPremium ? "text-saffron-700" : "text-navy"
+                        }`}>
+                          {info.nameHi} / {info.name}
+                        </span>
+                        {isLifetime && (
+                          <span className="text-[10px] bg-gold/20 text-gold px-1.5 py-0.5 rounded font-medium">
+                            BEST VALUE
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-navy/70">
+                        <span className="font-semibold text-navy">₹{info.price.toLocaleString("en-IN")}</span>
+                        <span className="text-xs"> {info.period}</span>
+                      </div>
                     </div>
-                  </div>
-                </label>
-              );
-            })}
+                  </label>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <div>
