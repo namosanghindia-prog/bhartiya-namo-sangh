@@ -10,14 +10,16 @@ export { DEFAULT_SLIDES };
 const REDIS_KEY = "bns:homepage-slides";
 const DATA_FILE = path.join(process.cwd(), "data", "slider.json");
 
-// Uses Upstash Redis when the integration is connected (auto-injected env
-// vars on Vercel: UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN).
-// Falls back to a local JSON file for local development without Redis
-// configured. This fallback does NOT work reliably on Vercel's serverless
-// filesystem — Redis (or a real database) is required in production.
+// Uses Upstash Redis when the integration is connected. Supports both naming
+// conventions: UPSTASH_REDIS_REST_URL/TOKEN (direct Upstash) and
+// KV_REST_API_URL/TOKEN (Vercel KV integration). Falls back to a local JSON
+// file for local development without Redis configured. This fallback does NOT
+// work reliably on Vercel's serverless filesystem — Redis is required in production.
 function getRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const url =
+    process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const token =
+    process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
   if (!url || !token) return null;
   return new Redis({ url, token });
 }
