@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Branch } from "@/lib/supabase/types";
 
@@ -17,6 +17,9 @@ export default function SignupPage() {
   const [branchesLoading, setBranchesLoading] = useState(true);
   const [declarationAccepted, setDeclarationAccepted] = useState(false);
   const [membershipType, setMembershipType] = useState<"normal" | "premium" | "lifetime">("normal");
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const MEMBERSHIP_TIERS = {
     normal: { name: "Normal", nameHi: "सामान्य", price: 1100, period: "/year", periodHi: "/वर्ष" },
@@ -47,9 +50,46 @@ export default function SignupPage() {
     fetchBranches();
   }, []);
 
+  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    setPhotoError(null);
+
+    if (!file) {
+      setPhotoPreview(null);
+      return;
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setPhotoError("Please select a JPG, PNG, or WebP image");
+      setPhotoPreview(null);
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setPhotoError("Image must be less than 2MB");
+      setPhotoPreview(null);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      setPhotoPreview(dataUrl);
+      sessionStorage.setItem("pending_avatar", dataUrl);
+      sessionStorage.setItem("pending_avatar_type", file.type);
+    };
+    reader.readAsDataURL(file);
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+
+    if (!photoPreview) {
+      setError("Profile photo is required. Please upload a photo.");
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError("Passwords don't match.");
@@ -158,6 +198,56 @@ export default function SignupPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        {/* Profile Photo Upload */}
+        <div className="rounded-lg border-2 border-dashed border-saffron-300 bg-saffron-50/50 p-4">
+          <label className="block text-sm font-medium text-navy/80 mb-2">
+            <span className="block">प्रोफ़ाइल फ़ोटो <span className="text-red-600">*</span></span>
+            <span className="text-xs text-navy/60">Profile Photo (Required)</span>
+          </label>
+          <div className="flex items-center gap-4">
+            {photoPreview ? (
+              <img
+                src={photoPreview}
+                alt="Preview"
+                className="h-20 w-20 rounded-full object-cover border-2 border-saffron-300"
+              />
+            ) : (
+              <div className="h-20 w-20 rounded-full bg-saffron-200 flex items-center justify-center text-saffron-600">
+                <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+            )}
+            <div className="flex-1">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handlePhotoSelect}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
+                  photoPreview
+                    ? "border-saffron-300 text-navy hover:bg-saffron-100"
+                    : "border-red-300 bg-red-50 text-red-700 hover:bg-red-100"
+                }`}
+              >
+                {photoPreview ? "Change Photo" : "Upload Photo"}
+              </button>
+              <p className="mt-1 text-xs text-navy/50">JPG, PNG or WebP. Max 2MB.</p>
+              {photoError && (
+                <p className="mt-1 text-xs text-red-600">{photoError}</p>
+              )}
+              {!photoPreview && !photoError && (
+                <p className="mt-1 text-xs text-red-600">Photo is required for membership</p>
+              )}
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label

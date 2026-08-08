@@ -25,14 +25,13 @@ function LoginForm() {
 
     const supabase = createClient();
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    setSubmitting(false);
-
     if (signInError) {
+      setSubmitting(false);
       if (signInError.message.includes("Invalid login credentials")) {
         setError("Invalid email or password. Please try again.");
       } else if (signInError.message.includes("Email not confirmed")) {
@@ -45,6 +44,48 @@ function LoginForm() {
       return;
     }
 
+    if (signInData?.user) {
+      const pendingAvatar = sessionStorage.getItem("pending_avatar");
+      const pendingAvatarType = sessionStorage.getItem("pending_avatar_type");
+
+      if (pendingAvatar && pendingAvatarType) {
+        try {
+          const base64Data = pendingAvatar.split(",")[1];
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: pendingAvatarType });
+
+          const ext = pendingAvatarType.split("/")[1] === "jpeg" ? "jpg" : pendingAvatarType.split("/")[1];
+          const filePath = `${signInData.user.id}/avatar.${ext}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("avatars")
+            .upload(filePath, blob, { upsert: true });
+
+          if (!uploadError) {
+            const { data: { publicUrl } } = supabase.storage
+              .from("avatars")
+              .getPublicUrl(filePath);
+
+            await supabase
+              .from("members")
+              .update({ avatar_url: publicUrl })
+              .eq("id", signInData.user.id);
+          }
+
+          sessionStorage.removeItem("pending_avatar");
+          sessionStorage.removeItem("pending_avatar_type");
+        } catch (err) {
+          console.error("Failed to upload pending avatar:", err);
+        }
+      }
+    }
+
+    setSubmitting(false);
     router.push(redirectTo);
     router.refresh();
   }

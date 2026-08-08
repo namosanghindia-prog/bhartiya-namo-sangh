@@ -324,6 +324,10 @@ export default function ApprovalsPage() {
         <ul className="space-y-2 text-sm text-navy/70">
           <li className="flex items-start gap-2">
             <span className="text-forest">✓</span>
+            Verify the member&apos;s photo is a clear, appropriate headshot
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-forest">✓</span>
             Verify the member&apos;s email appears legitimate (not disposable)
           </li>
           <li className="flex items-start gap-2">
@@ -344,6 +348,7 @@ export default function ApprovalsPage() {
           </li>
         </ul>
         <p className="mt-4 text-xs text-navy/50">
+          Note: Photo may not appear until the member logs in for the first time after email verification.
           Upon approval, the member will be prompted to pay their membership fee.
           Membership number is assigned after payment confirmation.
         </p>
