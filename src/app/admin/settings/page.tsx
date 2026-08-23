@@ -9,14 +9,19 @@ interface OrgSettings {
   primary_email: string | null;
 }
 
+interface Office {
+  label: string;
+  address: string;
+}
+
 interface ContactSettings {
   phone_primary: string | null;
   phone_secondary: string | null;
   whatsapp_number: string | null;
-  address_line: string | null;
-  city: string | null;
-  state: string | null;
-  pincode: string | null;
+  offices: Office[];
+  founder_name: string | null;
+  founder_title: string | null;
+  website_url: string | null;
   facebook_url: string | null;
   instagram_url: string | null;
   youtube_url: string | null;
@@ -36,10 +41,10 @@ export default function AdminSettingsPage() {
     phone_primary: null,
     phone_secondary: null,
     whatsapp_number: null,
-    address_line: null,
-    city: null,
-    state: null,
-    pincode: null,
+    offices: [],
+    founder_name: null,
+    founder_title: null,
+    website_url: null,
     facebook_url: null,
     instagram_url: null,
     youtube_url: null,
@@ -52,7 +57,7 @@ export default function AdminSettingsPage() {
 
       const { data, error } = await supabase
         .from("organization_settings")
-        .select("org_name, founded_year, primary_email, phone_primary, phone_secondary, whatsapp_number, address_line, city, state, pincode, facebook_url, instagram_url, youtube_url")
+        .select("org_name, founded_year, primary_email, phone_primary, phone_secondary, whatsapp_number, offices, founder_name, founder_title, website_url, facebook_url, instagram_url, youtube_url")
         .eq("id", 1)
         .single();
 
@@ -68,10 +73,10 @@ export default function AdminSettingsPage() {
           phone_primary: data.phone_primary,
           phone_secondary: data.phone_secondary,
           whatsapp_number: data.whatsapp_number,
-          address_line: data.address_line,
-          city: data.city,
-          state: data.state,
-          pincode: data.pincode,
+          offices: Array.isArray(data.offices) ? (data.offices as Office[]) : [],
+          founder_name: data.founder_name,
+          founder_title: data.founder_title,
+          website_url: data.website_url,
           facebook_url: data.facebook_url,
           instagram_url: data.instagram_url,
           youtube_url: data.youtube_url,
@@ -121,10 +126,12 @@ export default function AdminSettingsPage() {
         phone_primary: contactSettings.phone_primary?.trim() || null,
         phone_secondary: contactSettings.phone_secondary?.trim() || null,
         whatsapp_number: contactSettings.whatsapp_number?.trim() || null,
-        address_line: contactSettings.address_line?.trim() || null,
-        city: contactSettings.city?.trim() || null,
-        state: contactSettings.state?.trim() || null,
-        pincode: contactSettings.pincode?.trim() || null,
+        offices: contactSettings.offices
+          .map((o) => ({ label: o.label.trim(), address: o.address.trim() }))
+          .filter((o) => o.address),
+        founder_name: contactSettings.founder_name?.trim() || null,
+        founder_title: contactSettings.founder_title?.trim() || null,
+        website_url: contactSettings.website_url?.trim() || null,
         facebook_url: contactSettings.facebook_url?.trim() || null,
         instagram_url: contactSettings.instagram_url?.trim() || null,
         youtube_url: contactSettings.youtube_url?.trim() || null,
@@ -141,6 +148,29 @@ export default function AdminSettingsPage() {
 
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
+  }
+
+  function updateOffice(index: number, patch: Partial<Office>) {
+    setContactSettings({
+      ...contactSettings,
+      offices: contactSettings.offices.map((o, i) =>
+        i === index ? { ...o, ...patch } : o
+      ),
+    });
+  }
+
+  function addOffice() {
+    setContactSettings({
+      ...contactSettings,
+      offices: [...contactSettings.offices, { label: "", address: "" }],
+    });
+  }
+
+  function removeOffice(index: number) {
+    setContactSettings({
+      ...contactSettings,
+      offices: contactSettings.offices.filter((_, i) => i !== index),
+    });
   }
 
   return (
@@ -307,63 +337,106 @@ export default function AdminSettingsPage() {
 
               <div>
                 <label className="block text-sm text-navy/70 mb-1">
-                  Address Line
+                  Website URL
                 </label>
                 <input
                   type="text"
-                  value={contactSettings.address_line || ""}
+                  value={contactSettings.website_url || ""}
                   onChange={(e) =>
-                    setContactSettings({ ...contactSettings, address_line: e.target.value })
+                    setContactSettings({ ...contactSettings, website_url: e.target.value })
                   }
-                  placeholder="123, Main Street, Sector 5"
+                  placeholder="https://www.example.org"
                   className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <hr className="border-saffron-100" />
+
+              <p className="text-sm font-medium text-navy/70">
+                Founder / Head of Organization
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm text-navy/70 mb-1">
-                    City
+                    Name
                   </label>
                   <input
                     type="text"
-                    value={contactSettings.city || ""}
+                    value={contactSettings.founder_name || ""}
                     onChange={(e) =>
-                      setContactSettings({ ...contactSettings, city: e.target.value })
+                      setContactSettings({ ...contactSettings, founder_name: e.target.value })
                     }
-                    placeholder="New Delhi"
+                    placeholder="Dr. Manoj Kumar Tomar"
                     className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
                   />
                 </div>
                 <div>
                   <label className="block text-sm text-navy/70 mb-1">
-                    State
+                    Title / Designation
                   </label>
                   <input
                     type="text"
-                    value={contactSettings.state || ""}
+                    value={contactSettings.founder_title || ""}
                     onChange={(e) =>
-                      setContactSettings({ ...contactSettings, state: e.target.value })
+                      setContactSettings({ ...contactSettings, founder_title: e.target.value })
                     }
-                    placeholder="Delhi"
-                    className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-navy/70 mb-1">
-                    Pincode
-                  </label>
-                  <input
-                    type="text"
-                    value={contactSettings.pincode || ""}
-                    onChange={(e) =>
-                      setContactSettings({ ...contactSettings, pincode: e.target.value })
-                    }
-                    placeholder="110001"
+                    placeholder="National President & Founder"
                     className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
                   />
                 </div>
               </div>
+
+              <hr className="border-saffron-100" />
+
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-navy/70">Offices</p>
+                <button
+                  type="button"
+                  onClick={addOffice}
+                  className="text-sm font-medium text-saffron-700 hover:text-saffron-800"
+                >
+                  + Add office
+                </button>
+              </div>
+
+              {contactSettings.offices.length === 0 && (
+                <p className="text-sm text-navy/50">
+                  No offices added yet. Click &ldquo;Add office&rdquo; to add one.
+                </p>
+              )}
+
+              {contactSettings.offices.map((office, index) => (
+                <div
+                  key={index}
+                  className="rounded-lg border border-saffron-100 bg-saffron-50/40 p-4 space-y-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      value={office.label}
+                      onChange={(e) => updateOffice(index, { label: e.target.value })}
+                      placeholder="Office label (e.g. Head Office)"
+                      className="flex-1 rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeOffice(index)}
+                      className="text-sm text-red-600 hover:text-red-700"
+                      aria-label={`Remove ${office.label || "office"}`}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <textarea
+                    value={office.address}
+                    onChange={(e) => updateOffice(index, { address: e.target.value })}
+                    placeholder="Full address including city and pincode"
+                    rows={2}
+                    className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+                  />
+                </div>
+              ))}
 
               <hr className="border-saffron-100" />
 

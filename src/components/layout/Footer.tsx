@@ -9,6 +9,8 @@ interface SocialLinks {
   facebook_url: string | null;
   instagram_url: string | null;
   youtube_url: string | null;
+  primary_email: string | null;
+  phone_primary: string | null;
 }
 
 export default function Footer() {
@@ -20,7 +22,7 @@ export default function Footer() {
       const supabase = createClient();
       const { data } = await supabase
         .from("organization_settings")
-        .select("facebook_url, instagram_url, youtube_url")
+        .select("facebook_url, instagram_url, youtube_url, primary_email, phone_primary")
         .eq("id", 1)
         .single();
 
@@ -140,7 +142,26 @@ export default function Footer() {
             </h3>
             <ul className="space-y-2 text-sm text-white/70">
               <li>New Delhi, India</li>
-              <li>contact@bnsindia.org</li>
+              {socialLinks?.primary_email && (
+                <li>
+                  <a
+                    href={`mailto:${socialLinks.primary_email}`}
+                    className="hover:text-white break-all"
+                  >
+                    {socialLinks.primary_email}
+                  </a>
+                </li>
+              )}
+              {socialLinks?.phone_primary && (
+                <li>
+                  <a
+                    href={`tel:${socialLinks.phone_primary.replace(/\s/g, "")}`}
+                    className="hover:text-white"
+                  >
+                    {socialLinks.phone_primary}
+                  </a>
+                </li>
+              )}
               <li><Link href="/contact" className="hover:text-white">Contact Form</Link></li>
             </ul>
           </div>

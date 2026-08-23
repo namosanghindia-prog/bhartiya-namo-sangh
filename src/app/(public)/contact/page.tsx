@@ -4,15 +4,20 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Branch } from "@/lib/supabase/types";
 
+interface Office {
+  label: string;
+  address: string;
+}
+
 interface ContactInfo {
   primary_email: string | null;
   phone_primary: string | null;
   phone_secondary: string | null;
   whatsapp_number: string | null;
-  address_line: string | null;
-  city: string | null;
-  state: string | null;
-  pincode: string | null;
+  offices: Office[] | null;
+  founder_name: string | null;
+  founder_title: string | null;
+  website_url: string | null;
   facebook_url: string | null;
   instagram_url: string | null;
   youtube_url: string | null;
@@ -36,7 +41,7 @@ export default function ContactPage() {
           .order("name"),
         supabase
           .from("organization_settings")
-          .select("primary_email, phone_primary, phone_secondary, whatsapp_number, address_line, city, state, pincode, facebook_url, instagram_url, youtube_url")
+          .select("primary_email, phone_primary, phone_secondary, whatsapp_number, offices, founder_name, founder_title, website_url, facebook_url, instagram_url, youtube_url")
           .eq("id", 1)
           .single(),
       ]);
@@ -55,18 +60,17 @@ export default function ContactPage() {
     setSent(true);
   }
 
-  function formatAddress(): string | null {
-    if (!contactInfo) return null;
-    const parts = [
-      contactInfo.address_line,
-      contactInfo.city,
-      contactInfo.state,
-      contactInfo.pincode,
-    ].filter(Boolean);
-    return parts.length > 0 ? parts.join(", ") : null;
-  }
-
-  const address = formatAddress();
+  const offices = (contactInfo?.offices ?? []).filter(
+    (o) => o && o.address && o.address.trim()
+  );
+  const websiteHref = contactInfo?.website_url
+    ? /^https?:\/\//i.test(contactInfo.website_url)
+      ? contactInfo.website_url
+      : `https://${contactInfo.website_url}`
+    : null;
+  const websiteLabel = contactInfo?.website_url
+    ? contactInfo.website_url.replace(/^https?:\/\//i, "").replace(/\/$/, "")
+    : null;
   const hasSocialLinks = contactInfo && (
     contactInfo.facebook_url || contactInfo.instagram_url || contactInfo.youtube_url
   );
@@ -155,10 +159,19 @@ export default function ContactPage() {
                 Get in touch
               </h3>
               <ul className="space-y-3 text-sm text-navy/70">
-                {address && (
+                {contactInfo?.founder_name && (
                   <li className="flex items-start gap-2">
-                    <span className="flex-shrink-0">📍</span>
-                    <span>{address}</span>
+                    <span className="flex-shrink-0">👤</span>
+                    <span>
+                      <span className="font-medium text-navy">
+                        {contactInfo.founder_name}
+                      </span>
+                      {contactInfo.founder_title && (
+                        <span className="block text-xs text-navy/50">
+                          {contactInfo.founder_title}
+                        </span>
+                      )}
+                    </span>
                   </li>
                 )}
                 {contactInfo?.primary_email && (
@@ -207,7 +220,41 @@ export default function ContactPage() {
                     </a>
                   </li>
                 )}
+                {websiteHref && (
+                  <li className="flex items-start gap-2">
+                    <span className="flex-shrink-0">🌐</span>
+                    <a
+                      href={websiteHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-saffron-700 transition-colors"
+                    >
+                      {websiteLabel}
+                    </a>
+                  </li>
+                )}
               </ul>
+
+              {offices.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-saffron-100">
+                  <p className="text-xs text-navy/50 mb-2">Our offices</p>
+                  <ul className="space-y-3 text-sm text-navy/70">
+                    {offices.map((o, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="flex-shrink-0">📍</span>
+                        <span>
+                          {o.label && (
+                            <span className="block font-medium text-navy">
+                              {o.label}
+                            </span>
+                          )}
+                          {o.address}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {hasSocialLinks && (
                 <div className="mt-4 pt-4 border-t border-saffron-100">
