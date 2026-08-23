@@ -6,6 +6,23 @@ import JsBarcode from "jsbarcode";
 import { toPng } from "html-to-image";
 import { createClient } from "@/lib/supabase/client";
 
+/* ------------------------------------------------------------------ */
+/*  Physical size: ISO/IEC 7810 ID-1 (Aadhaar / PAN / bank card)       */
+/*  85.6mm × 53.98mm  →  1.586:1                                        */
+/* ------------------------------------------------------------------ */
+const CARD_MM_W = 85.6;
+const CARD_MM_H = 53.98;
+/** On-screen design canvas (CSS px). Everything inside is laid out at this size. */
+const CARD_W = 400;
+const CARD_H = 252; // 400 / 1.586
+/** 300 DPI raster size used for PNG + PDF. */
+const PRINT_W = 1013;
+const PRINT_RATIO = PRINT_W / CARD_W; // ≈ 2.53 → 1013 × 638
+/** 1 mm = 72 / 25.4 pt */
+const MM_TO_PT = 72 / 25.4;
+/** QR display size on the design canvas (CSS px) ≈ 11.8 mm on the printed card. */
+const QR_SIZE = 44;
+
 interface MembershipCardProps {
   member: {
     id: string;
@@ -203,16 +220,16 @@ function IconYoutube({ className }: { className?: string }) {
 function TricolorCorners() {
   // Diagonal saffron / white / green bands tucked into each top corner.
   const bands = (angle: number) =>
-    `linear-gradient(${angle}deg, #FF9933 0 12px, #f4f4f4 12px 22px, #138808 22px 34px, transparent 34px)`;
+    `linear-gradient(${angle}deg, #FF9933 0 8px, #f4f4f4 8px 15px, #138808 15px 23px, transparent 23px)`;
   return (
     <>
       <div
-        className="pointer-events-none absolute top-0 left-0 h-12 w-12"
+        className="pointer-events-none absolute top-0 left-0 h-8 w-8"
         style={{ background: bands(135), clipPath: "polygon(0 0, 100% 0, 0 100%)" }}
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute top-0 right-0 h-12 w-12"
+        className="pointer-events-none absolute top-0 right-0 h-8 w-8"
         style={{ background: bands(225), clipPath: "polygon(0 0, 100% 0, 100% 100%)" }}
         aria-hidden="true"
       />
@@ -223,7 +240,7 @@ function TricolorCorners() {
 function LanyardHole() {
   return (
     <div
-      className="absolute left-1/2 top-2 -translate-x-1/2 h-2.5 w-10 rounded-full bg-[#e9eef3] border border-[#c9d3dd] shadow-inner"
+      className="absolute left-1/2 top-[5px] -translate-x-1/2 h-[6px] w-7 rounded-full bg-[#e9eef3] border border-[#c9d3dd]"
       aria-hidden="true"
     />
   );
@@ -231,33 +248,71 @@ function LanyardHole() {
 
 function OrgHeader({ compact = false }: { compact?: boolean }) {
   return (
-    <div className={`flex items-center gap-3 ${compact ? "px-4 pt-6" : "px-4 pt-11"}`}>
+    <div className={`flex items-center gap-2 px-3 ${compact ? "pt-[14px]" : "pt-4"}`}>
       <div
-        className={`flex-shrink-0 rounded-full bg-white border-2 border-saffron-500 shadow-sm flex items-center justify-center overflow-hidden ${
-          compact ? "h-11 w-11" : "h-14 w-14"
+        className={`flex-shrink-0 rounded-full bg-white border-[1.5px] border-saffron-500 flex items-center justify-center overflow-hidden ${
+          compact ? "h-7 w-7" : "h-9 w-9"
         }`}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="BNMS" className={compact ? "h-9 w-9" : "h-12 w-12"} />
+        <img src="/logo.png" alt="BNMS" className={compact ? "h-6 w-6" : "h-[30px] w-[30px]"} />
       </div>
       <div className="min-w-0">
         <div
-          className={`font-heading font-extrabold leading-tight text-[#0a1929] ${
-            compact ? "text-lg" : "text-[22px]"
+          className={`font-heading font-extrabold leading-none text-[#0a1929] ${
+            compact ? "text-[12px]" : "text-[15px]"
           }`}
         >
           भारतीय नमो संघ
         </div>
-        <div className={`font-semibold text-[#0a1929]/70 ${compact ? "text-[10px]" : "text-xs"}`}>
-          (BNMS)
+        <div className="mt-[3px] flex items-center gap-1.5">
+          <span className={`font-semibold text-[#0a1929]/70 ${compact ? "text-[6.5px]" : "text-[7.5px]"}`}>
+            (BNMS)
+          </span>
+          <span
+            className={`inline-block rounded-full bg-saffron-600 text-white font-semibold leading-none ${
+              compact ? "px-1.5 py-[2px] text-[6px]" : "px-1.5 py-[2.5px] text-[6.5px]"
+            }`}
+          >
+            राष्ट्र सेवा में समर्पित सामाजिक महासंघ
+          </span>
         </div>
-        <span
-          className={`mt-1 inline-block rounded-full bg-saffron-600 text-white font-semibold leading-none ${
-            compact ? "px-2 py-[3px] text-[8px]" : "px-2.5 py-1 text-[9px]"
-          }`}
-        >
-          राष्ट्र सेवा में समर्पित सामाजिक महासंघ
-        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Keeps the fixed-size design canvas and scales it down to fit narrow containers. */
+function ScaledCard({ children }: { children: React.ReactNode }) {
+  const outerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const el = outerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? CARD_W;
+      setScale(Math.min(1, w / CARD_W));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={outerRef}
+      className="w-full max-w-[400px]"
+      style={{ aspectRatio: `${CARD_MM_W} / ${CARD_MM_H}` }}
+    >
+      <div
+        style={{
+          width: CARD_W,
+          height: CARD_H,
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+        }}
+      >
+        {children}
       </div>
     </div>
   );
@@ -266,13 +321,12 @@ function OrgHeader({ compact = false }: { compact?: boolean }) {
 /* ---------- Component ---------- */
 
 export default function MembershipCard({ member, showDownload = true }: MembershipCardProps) {
-  const bothRef = useRef<HTMLDivElement>(null);
   const frontRef = useRef<HTMLDivElement>(null);
   const backRef = useRef<HTMLDivElement>(null);
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const barcodeCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  const [downloading, setDownloading] = useState<"png" | "pdf" | null>(null);
+  const [downloading, setDownloading] = useState<"front" | "back" | "pdf" | null>(null);
   const [side, setSide] = useState<"front" | "back">("front");
   const [org, setOrg] = useState<OrgContact | null>(null);
 
@@ -308,17 +362,24 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
     };
   }, []);
 
-  // QR code
+  // QR code — rendered at print resolution, displayed smaller via CSS so it stays crisp.
   useEffect(() => {
     if (!qrCanvasRef.current) return;
-    QRCode.toCanvas(qrCanvasRef.current, verificationUrl, {
-      width: 64,
+    const canvas = qrCanvasRef.current;
+    QRCode.toCanvas(canvas, verificationUrl, {
+      width: 176,
       margin: 1,
       color: { dark: "#0a1929", light: "#ffffff" },
-    }).catch((err) => console.error("QR generation failed:", err));
+    })
+      .then(() => {
+        // qrcode writes its own inline size; shrink it back to the card's QR slot.
+        canvas.style.width = `${QR_SIZE}px`;
+        canvas.style.height = `${QR_SIZE}px`;
+      })
+      .catch((err) => console.error("QR generation failed:", err));
   }, [verificationUrl]);
 
-  // Barcode
+  // Barcode — same idea: large intrinsic canvas, CSS-scaled.
   useEffect(() => {
     if (!barcodeCanvasRef.current) return;
     try {
@@ -326,8 +387,8 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
         format: "CODE128",
         displayValue: false,
         width: 2,
-        height: 40,
-        margin: 4,
+        height: 64,
+        margin: 0,
         background: "#ffffff",
         lineColor: "#0a1929",
       });
@@ -336,19 +397,31 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
     }
   }, [barcodeText]);
 
+  /** Rasterise one side at 300 DPI (1013 × 638). */
   const snapshot = useCallback(async (el: HTMLElement) => {
-    return toPng(el, { cacheBust: true, pixelRatio: 3, backgroundColor: "#ffffff" });
+    return toPng(el, {
+      cacheBust: true,
+      pixelRatio: PRINT_RATIO,
+      width: CARD_W,
+      height: CARD_H,
+      backgroundColor: "#ffffff",
+    });
   }, []);
 
-  const handleDownloadPng = async () => {
-    if (!bothRef.current) return;
-    setDownloading("png");
+  const downloadDataUrl = (dataUrl: string, filename: string) => {
+    const link = document.createElement("a");
+    link.download = filename;
+    link.href = dataUrl;
+    link.click();
+  };
+
+  const handleDownloadPng = async (which: "front" | "back") => {
+    const el = which === "front" ? frontRef.current : backRef.current;
+    if (!el) return;
+    setDownloading(which);
     try {
-      const dataUrl = await snapshot(bothRef.current);
-      const link = document.createElement("a");
-      link.download = `membership-card-${member.membership_number}.png`;
-      link.href = dataUrl;
-      link.click();
+      const dataUrl = await snapshot(el);
+      downloadDataUrl(dataUrl, `membership-card-${member.membership_number}-${which}.png`);
     } catch (error) {
       console.error("Failed to download card:", error);
       alert("Failed to download the ID card. Please try again.");
@@ -365,32 +438,28 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
         snapshot(frontRef.current),
         snapshot(backRef.current),
       ]);
-      const w = frontRef.current.offsetWidth;
-      const h = Math.max(frontRef.current.offsetHeight, backRef.current.offsetHeight);
 
       const { pdf, Document, Page, Image: PdfImage } = await import("@react-pdf/renderer");
-      // 1 CSS px ≈ 0.75pt; keep the card at real ID-card size on the page
-      const scale = 0.75;
-      const pageW = w * scale + 40;
-      const pageH = h * scale + 40;
+      // Page is exactly ID-1 size so "print at 100%" gives a true-to-size card.
+      const pageW = CARD_MM_W * MM_TO_PT;
+      const pageH = CARD_MM_H * MM_TO_PT;
+      const pageStyle = { padding: 0, backgroundColor: "#ffffff" };
+      const imgStyle = { width: pageW, height: pageH };
 
       const CardPdf = () => (
         <Document title={`BNMS Membership Card ${membershipId}`}>
-          <Page size={[pageW, pageH]} style={{ padding: 20, backgroundColor: "#ffffff" }}>
-            <PdfImage src={frontPng} style={{ width: w * scale, height: h * scale }} />
+          <Page size={[pageW, pageH]} style={pageStyle}>
+            <PdfImage src={frontPng} style={imgStyle} />
           </Page>
-          <Page size={[pageW, pageH]} style={{ padding: 20, backgroundColor: "#ffffff" }}>
-            <PdfImage src={backPng} style={{ width: w * scale, height: h * scale }} />
+          <Page size={[pageW, pageH]} style={pageStyle}>
+            <PdfImage src={backPng} style={imgStyle} />
           </Page>
         </Document>
       );
 
       const blob = await pdf(<CardPdf />).toBlob();
       const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `membership-card-${member.membership_number}.pdf`;
-      link.click();
+      downloadDataUrl(url, `membership-card-${member.membership_number}.pdf`);
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Failed to generate PDF:", error);
@@ -405,12 +474,13 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
   const hasSocial = !!(org?.facebook_url || org?.instagram_url || org?.youtube_url);
 
   const cardBase =
-    "relative w-[320px] min-h-[508px] flex flex-col overflow-hidden rounded-2xl bg-white border border-[#d7dde4] shadow-lg text-[#0a1929]";
+    "relative flex flex-col overflow-hidden rounded-[10px] bg-white border border-[#d7dde4] text-[#0a1929] shadow-md";
+  const cardStyle = { width: CARD_W, height: CARD_H };
 
   return (
-    <div className="space-y-4 w-full flex flex-col items-center">
-      {/* Front / Back toggle (small screens only — both sides show on lg+) */}
-      <div className="flex lg:hidden rounded-md border border-saffron-200 overflow-hidden text-xs font-semibold">
+    <div className="w-full flex flex-col items-center gap-4">
+      {/* Front / Back toggle — both sides show side-by-side on xl */}
+      <div className="flex xl:hidden rounded-md border border-saffron-200 overflow-hidden text-xs font-semibold">
         <button
           type="button"
           onClick={() => setSide("front")}
@@ -427,225 +497,229 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
         </button>
       </div>
 
-      <div ref={bothRef} className="flex flex-col lg:flex-row gap-6 p-2 bg-white">
+      <div className="w-full flex flex-col xl:flex-row items-center xl:items-start justify-center gap-5">
         {/* ================= FRONT ================= */}
-        <div
-          ref={frontRef}
-          className={`${cardBase} ${side === "front" ? "" : "hidden lg:flex"}`}
-        >
-          <TricolorCorners />
-          <LanyardHole />
-          <span className="absolute top-[28px] right-5 z-10 text-[9px] font-semibold text-[#0a1929]/70 tracking-wide">
-            {REGD_NO}
-          </span>
+        <div className={`w-full max-w-[400px] ${side === "front" ? "" : "hidden xl:block"}`}>
+          <ScaledCard>
+            <div ref={frontRef} className={cardBase} style={cardStyle}>
+              <TricolorCorners />
+              <LanyardHole />
+              <span className="absolute top-[13px] right-6 z-10 text-[6.5px] font-semibold text-[#0a1929]/70 tracking-wide">
+                {REGD_NO}
+              </span>
 
-          <div className="relative z-10">
-            <OrgHeader />
-          </div>
+              <div className="relative z-10">
+                <OrgHeader />
+              </div>
 
-          {/* Photo + identity */}
-          <div className="relative z-10 px-4 pt-5 flex items-start gap-4">
-            <div className="flex-shrink-0 h-[112px] w-[92px] rounded-lg overflow-hidden border-2 border-saffron-400 bg-saffron-50 shadow-sm">
-              {member.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={member.avatar_url}
-                  alt=""
-                  className="h-full w-full object-cover"
-                  crossOrigin="anonymous"
-                />
-              ) : (
-                <div className="h-full w-full flex items-center justify-center font-heading text-2xl font-bold text-saffron-700">
-                  {initials}
+              {/* Photo + identity + ID bar */}
+              <div className="relative z-10 px-3 pt-2 flex items-start gap-2.5">
+                <div className="flex-shrink-0 h-[104px] w-[82px] rounded-md overflow-hidden border-[1.5px] border-saffron-400 bg-saffron-50">
+                  {member.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={member.avatar_url}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      crossOrigin="anonymous"
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center font-heading text-xl font-bold text-saffron-700">
+                      {initials}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className="min-w-0 flex-1 pt-2">
-              <h2 className="font-heading text-[22px] font-bold leading-tight break-words">
-                {member.first_name} {member.last_name}
-              </h2>
-              {member.designation && (
-                <p className="mt-1.5 text-[15px] font-semibold text-[#138808] break-words">
-                  {member.designation}
-                </p>
-              )}
-              {stateName && (
-                <p className="mt-1 text-[13px] text-[#0a1929]/70">{stateName}</p>
-              )}
-            </div>
-          </div>
 
-          {/* Member number bar */}
-          <div className="relative z-10 mt-5 mx-4 rounded-lg bg-[#0a1929] text-white px-3 py-2.5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <IconUser className="h-5 w-5 flex-shrink-0 text-saffron-400" />
-              <div className="min-w-0">
-                <div className="text-[10px] text-white/70 leading-tight">सदस्य क्रमांक</div>
-                <div className="font-mono text-sm font-bold text-[#ff5a5a] tracking-wide leading-tight">
-                  {membershipId}
+                <div className="min-w-0 flex-1 h-[104px] flex flex-col">
+                  <h2 className="font-heading text-[13px] font-bold leading-[1.15] line-clamp-2 break-words">
+                    {member.first_name} {member.last_name}
+                  </h2>
+                  {member.designation && (
+                    <p className="mt-[3px] text-[9px] font-semibold leading-tight text-[#138808] truncate">
+                      {member.designation}
+                    </p>
+                  )}
+                  {stateName && (
+                    <p className="mt-[2px] text-[8px] leading-tight text-[#0a1929]/70 truncate">
+                      {stateName}
+                    </p>
+                  )}
+
+                  {/* Member number bar */}
+                  <div className="mt-auto h-[50px] rounded-md bg-[#0a1929] text-white pl-2 pr-1.5 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <IconUser className="h-3.5 w-3.5 flex-shrink-0 text-saffron-400" />
+                      <div className="min-w-0">
+                        <div className="text-[6.5px] text-white/70 leading-none">सदस्य क्रमांक</div>
+                        <div className="mt-[3px] font-mono text-[10px] font-bold text-[#ff5a5a] tracking-wide leading-none whitespace-nowrap">
+                          {membershipId}
+                        </div>
+                      </div>
+                    </div>
+                    <canvas
+                      ref={qrCanvasRef}
+                      className="rounded-[2px] bg-white flex-shrink-0"
+                      style={{ width: QR_SIZE, height: QR_SIZE }}
+                      aria-label="Verification QR code"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-            <canvas
-              ref={qrCanvasRef}
-              className="rounded-sm bg-white flex-shrink-0"
-              style={{ width: 56, height: 56 }}
-              aria-label="Verification QR code"
-            />
-          </div>
 
-          {/* Detail rows */}
-          <div className="relative z-10 px-4 pt-4 pb-3 space-y-2.5 text-[13px]">
-            <div className="flex items-start gap-2">
-              <IconCalendar className="h-4 w-4 flex-shrink-0 text-saffron-700 mt-0.5" />
-              <div>
-                <span className="text-[#0a1929]/60">निर्गमन तिथि: </span>
-                <span className="font-semibold">{issued}</span>
+              {/* Detail rows */}
+              <div className="relative z-10 px-3 flex-1 flex flex-col justify-center gap-[5px] text-[8px] leading-none">
+                <div className="flex items-center gap-1.5">
+                  <IconCalendar className="h-[9px] w-[9px] flex-shrink-0 text-saffron-700" />
+                  <span className="text-[#0a1929]/60">निर्गमन तिथि:</span>
+                  <span className="font-semibold">{issued}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <IconBadge className="h-[9px] w-[9px] flex-shrink-0 text-saffron-700" />
+                  <span className="text-[#0a1929]/60">वैधता अवधि:</span>
+                  <span className={`font-semibold ${isLifetime ? "text-gold" : ""}`}>{validity}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <IconPhone className="h-[9px] w-[9px] flex-shrink-0 text-saffron-700" />
+                  <span className="text-[#0a1929]/60">संपर्क:</span>
+                  <span className="font-semibold">{phones.length ? phones.join(", ") : "—"}</span>
+                </div>
+              </div>
+
+              {/* Bottom bar */}
+              <div className="relative z-10 bg-[#0a1929] text-white px-3 h-[18px] flex items-center justify-center gap-1.5 text-[7.5px] font-semibold tracking-wide">
+                <IconGlobe className="h-[9px] w-[9px] text-saffron-400" />
+                <span>{WEBSITE_LABEL}</span>
               </div>
             </div>
-            <div className="flex items-start gap-2">
-              <IconBadge className="h-4 w-4 flex-shrink-0 text-saffron-700 mt-0.5" />
-              <div>
-                <span className="text-[#0a1929]/60">वैधता अवधि: </span>
-                <span className={`font-semibold ${isLifetime ? "text-gold" : ""}`}>{validity}</span>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <IconPhone className="h-4 w-4 flex-shrink-0 text-saffron-700 mt-0.5" />
-              <div>
-                <span className="text-[#0a1929]/60">संपर्क: </span>
-                <span className="font-semibold">{phones.length ? phones.join(", ") : "—"}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-1" />
-
-          <p className="relative z-10 px-4 pb-2 text-center text-[9px] text-[#0a1929]/50">
-            सत्यापन हेतु QR कोड स्कैन करें · Scan QR to verify membership
-          </p>
-
-          {/* Bottom bar */}
-          <div className="relative z-10 bg-[#0a1929] text-white px-4 py-2 flex items-center justify-center gap-2 text-xs font-semibold tracking-wide">
-            <IconGlobe className="h-4 w-4 text-saffron-400" />
-            <span>{WEBSITE_LABEL}</span>
-          </div>
+          </ScaledCard>
         </div>
 
         {/* ================= BACK ================= */}
-        <div
-          ref={backRef}
-          className={`${cardBase} ${side === "back" ? "" : "hidden lg:flex"}`}
-        >
-          <TricolorCorners />
-          <LanyardHole />
+        <div className={`w-full max-w-[400px] ${side === "back" ? "" : "hidden xl:block"}`}>
+          <ScaledCard>
+            <div ref={backRef} className={cardBase} style={cardStyle}>
+              <TricolorCorners />
+              <LanyardHole />
 
-          <div className="relative z-10">
-            <OrgHeader compact />
-          </div>
-
-          {/* Terms */}
-          <div className="relative z-10 px-4 pt-3">
-            <h3 className="text-xs font-bold text-saffron-800 border-b border-saffron-200 pb-1 mb-1.5">
-              निर्देश / शर्तें
-            </h3>
-            <ol className="space-y-1 text-[9.5px] leading-snug text-[#0a1929]/85 list-decimal pl-4">
-              {TERMS.map((t) => (
-                <li key={t}>{t}</li>
-              ))}
-            </ol>
-          </div>
-
-          {/* Contact box */}
-          <div className="relative z-10 mx-4 mt-3 rounded-lg border border-saffron-200 bg-saffron-50 px-3 py-2">
-            <h3 className="text-[10px] font-bold text-saffron-800 mb-1">संपर्क करें</h3>
-            <ul className="space-y-1 text-[9.5px] leading-snug">
-              <li className="flex items-start gap-1.5">
-                <IconPhone className="h-3 w-3 flex-shrink-0 text-saffron-700 mt-[1px]" />
-                <span>{phones.length ? phones.join(", ") : "—"}</span>
-              </li>
-              <li className="flex items-start gap-1.5">
-                <IconMail className="h-3 w-3 flex-shrink-0 text-saffron-700 mt-[1px]" />
-                <span className="break-all">{org?.primary_email ?? "—"}</span>
-              </li>
-              <li className="flex items-start gap-1.5">
-                <IconGlobe className="h-3 w-3 flex-shrink-0 text-saffron-700 mt-[1px]" />
-                <span>{WEBSITE_LABEL}</span>
-              </li>
-              <li className="flex items-start gap-1.5">
-                <IconPin className="h-3 w-3 flex-shrink-0 text-saffron-700 mt-[1px]" />
-                <span>{address ?? "—"}</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Barcode */}
-          <div className="relative z-10 mt-3 px-4 flex flex-col items-center">
-            <canvas
-              ref={barcodeCanvasRef}
-              className="max-w-full"
-              style={{ height: 40 }}
-              aria-label={`Barcode ${barcodeText}`}
-            />
-            <span className="font-mono text-[10px] tracking-[0.2em] text-[#0a1929]/80">
-              {barcodeText}
-            </span>
-          </div>
-
-          <div className="flex-1" />
-
-          {/* Social row */}
-          <div className="relative z-10 px-4 pb-2 flex items-center justify-center gap-2 text-[10px] text-[#0a1929]/70">
-            {hasSocial && (
-              <div className="flex items-center gap-1.5">
-                {org?.facebook_url && (
-                  <span className="h-5 w-5 rounded-full bg-[#0a1929] text-white flex items-center justify-center">
-                    <IconFacebook className="h-3 w-3" />
-                  </span>
-                )}
-                {org?.instagram_url && (
-                  <span className="h-5 w-5 rounded-full bg-[#0a1929] text-white flex items-center justify-center">
-                    <IconInstagram className="h-3 w-3" />
-                  </span>
-                )}
-                {org?.youtube_url && (
-                  <span className="h-5 w-5 rounded-full bg-[#0a1929] text-white flex items-center justify-center">
-                    <IconYoutube className="h-3 w-3" />
-                  </span>
-                )}
+              <div className="relative z-10">
+                <OrgHeader compact />
               </div>
-            )}
-            <span className="font-semibold">{SOCIAL_HANDLE}</span>
-          </div>
 
-          {/* Bottom bar */}
-          <div className="relative z-10 bg-[#0a1929] px-4 py-2 text-center">
-            <p className="text-[9px] leading-snug font-semibold text-[#f2c94c]">{BACK_TAGLINE}</p>
-          </div>
+              <div className="relative z-10 px-3 pt-2 pb-1.5 flex-1 min-h-0 flex gap-2.5">
+                {/* Terms + barcode */}
+                <div className="w-[56%] min-w-0 flex flex-col">
+                  <h3 className="text-[7.5px] font-bold leading-none text-saffron-800 border-b border-saffron-200 pb-[3px] mb-[4px]">
+                    निर्देश / शर्तें
+                  </h3>
+                  <ol className="space-y-[3px] text-[7.5px] leading-[1.35] text-[#0a1929]/85 list-decimal pl-[11px]">
+                    {TERMS.map((t) => (
+                      <li key={t}>{t}</li>
+                    ))}
+                  </ol>
+                  <div className="mt-auto pt-1 flex flex-col items-center">
+                    <canvas
+                      ref={barcodeCanvasRef}
+                      style={{ height: 34, width: "auto", maxWidth: "100%" }}
+                      aria-label={`Barcode ${barcodeText}`}
+                    />
+                    <span className="mt-[2px] font-mono text-[6.5px] leading-none tracking-[0.25em] text-[#0a1929]/80">
+                      {barcodeText}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Contact + social */}
+                <div className="flex-1 min-w-0 flex flex-col">
+                  <div className="rounded-md border border-saffron-200 bg-saffron-50 px-2 py-1.5">
+                    <h3 className="text-[7.5px] font-bold leading-none text-saffron-800 mb-[5px]">संपर्क करें</h3>
+                    <ul className="space-y-[3px] text-[7px] leading-[1.3]">
+                      <li className="flex items-start gap-1">
+                        <IconPhone className="h-[8px] w-[8px] flex-shrink-0 text-saffron-700 mt-[0.5px]" />
+                        <span className="truncate">{phones.length ? phones.join(", ") : "—"}</span>
+                      </li>
+                      <li className="flex items-start gap-1">
+                        <IconMail className="h-[8px] w-[8px] flex-shrink-0 text-saffron-700 mt-[0.5px]" />
+                        <span className="truncate">{org?.primary_email ?? "—"}</span>
+                      </li>
+                      <li className="flex items-start gap-1">
+                        <IconGlobe className="h-[8px] w-[8px] flex-shrink-0 text-saffron-700 mt-[0.5px]" />
+                        <span className="truncate">{WEBSITE_LABEL}</span>
+                      </li>
+                      <li className="flex items-start gap-1">
+                        <IconPin className="h-[8px] w-[8px] flex-shrink-0 text-saffron-700 mt-[0.5px]" />
+                        <span className="line-clamp-2">{address ?? "—"}</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Social row */}
+                  <div className="mt-auto flex items-center justify-center gap-1.5 text-[6.5px] text-[#0a1929]/70">
+                    {hasSocial && (
+                      <div className="flex items-center gap-1">
+                        {org?.facebook_url && (
+                          <span className="h-[14px] w-[14px] rounded-full bg-[#0a1929] text-white flex items-center justify-center">
+                            <IconFacebook className="h-[8px] w-[8px]" />
+                          </span>
+                        )}
+                        {org?.instagram_url && (
+                          <span className="h-[14px] w-[14px] rounded-full bg-[#0a1929] text-white flex items-center justify-center">
+                            <IconInstagram className="h-[8px] w-[8px]" />
+                          </span>
+                        )}
+                        {org?.youtube_url && (
+                          <span className="h-[14px] w-[14px] rounded-full bg-[#0a1929] text-white flex items-center justify-center">
+                            <IconYoutube className="h-[8px] w-[8px]" />
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <span className="font-semibold">{SOCIAL_HANDLE}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom bar */}
+              <div className="relative z-10 bg-[#0a1929] px-3 py-[3px] text-center">
+                <p className="text-[6px] leading-[1.3] font-semibold text-[#f2c94c]">{BACK_TAGLINE}</p>
+              </div>
+            </div>
+          </ScaledCard>
         </div>
       </div>
 
       {/* Download buttons */}
       {showDownload && (
-        <div className="w-full max-w-[320px] flex gap-2">
+        <div className="w-full max-w-[400px] flex gap-2">
           <button
-            onClick={handleDownloadPng}
+            onClick={() => handleDownloadPng("front")}
             disabled={downloading !== null}
-            className="flex-1 rounded-md bg-saffron-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-saffron-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+            className="flex-1 rounded-md bg-saffron-700 px-3 py-2.5 text-sm font-semibold text-white hover:bg-saffron-800 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" {...iconProps}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" {...iconProps}>
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
-            {downloading === "png" ? "..." : "PNG"}
+            {downloading === "front" ? "..." : "PNG Front"}
+          </button>
+          <button
+            onClick={() => handleDownloadPng("back")}
+            disabled={downloading !== null}
+            className="flex-1 rounded-md bg-saffron-700 px-3 py-2.5 text-sm font-semibold text-white hover:bg-saffron-800 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" {...iconProps}>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            {downloading === "back" ? "..." : "PNG Back"}
           </button>
           <button
             onClick={handleDownloadPdf}
             disabled={downloading !== null}
-            className="flex-1 rounded-md border-2 border-saffron-700 px-4 py-2.5 text-sm font-semibold text-saffron-700 hover:bg-saffron-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            className="flex-1 rounded-md border-2 border-saffron-700 px-3 py-2.5 text-sm font-semibold text-saffron-700 hover:bg-saffron-50 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" {...iconProps}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" {...iconProps}>
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" />
               <line x1="16" y1="13" x2="8" y2="13" />
