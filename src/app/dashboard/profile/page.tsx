@@ -135,7 +135,11 @@ export default function ProfilePage() {
       setSaving(false);
 
       if (requestError) {
-        setError("Your other details were saved, but the name/designation change request failed: " + requestError.message);
+        const friendly =
+          requestError.code === "23505"
+            ? "You already have a name/designation change awaiting admin approval."
+            : requestError.message;
+        setError("Your other details were saved, but the name/designation change request failed: " + friendly);
         return;
       }
 
