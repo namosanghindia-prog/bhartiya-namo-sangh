@@ -164,6 +164,13 @@ function IconPin({ className }: { className?: string }) {
     </svg>
   );
 }
+function IconCheck({ className }: { className?: string }) {
+  return (
+    <svg className={className} {...iconProps} strokeWidth={3}>
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
 function IconFacebook({ className }: { className?: string }) {
   return (
     <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -184,30 +191,79 @@ function IconYoutube({ className }: { className?: string }) {
   return (
     <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
-      <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="#0a1929" />
+      <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="#FF0000" />
     </svg>
   );
 }
 
 /* ---------- Shared card chrome ---------- */
 
-function TricolorCorners() {
-  // Diagonal saffron / white / green bands tucked into each top corner.
-  const bands = (angle: number) =>
-    `linear-gradient(${angle}deg, #FF9933 0 8px, #f4f4f4 8px 15px, #138808 15px 23px, transparent 23px)`;
+function TricolorAccents({ bottom = false }: { bottom?: boolean }) {
   return (
     <>
+      {/* Top-left angled wave (saffron / white / green) */}
+      <svg
+        className="pointer-events-none absolute top-0 left-0"
+        width="150"
+        height="46"
+        viewBox="0 0 150 46"
+        aria-hidden="true"
+      >
+        <path d="M0 0H150C110 2 78 14 52 30 34 40 18 45 0 46Z" fill="#FF9933" />
+        <path d="M0 0H118C86 4 62 14 42 27 28 36 14 41 0 43Z" fill="#f4f4f4" />
+        <path d="M0 0H86C62 4 44 12 30 22 20 29 10 33 0 35Z" fill="#138808" />
+      </svg>
+
+      {/* Top-right corner bands */}
       <div
-        className="pointer-events-none absolute top-0 left-0 h-8 w-8"
-        style={{ background: bands(135), clipPath: "polygon(0 0, 100% 0, 0 100%)" }}
+        className="pointer-events-none absolute top-0 right-0 h-9 w-9"
+        style={{
+          background:
+            "linear-gradient(225deg, #FF9933 0 9px, #f4f4f4 9px 17px, #138808 17px 26px, transparent 26px)",
+          clipPath: "polygon(0 0, 100% 0, 100% 100%)",
+        }}
         aria-hidden="true"
       />
-      <div
-        className="pointer-events-none absolute top-0 right-0 h-8 w-8"
-        style={{ background: bands(225), clipPath: "polygon(0 0, 100% 0, 100% 100%)" }}
-        aria-hidden="true"
-      />
+
+      {/* Bottom diagonal stripes (front only) */}
+      {bottom && (
+        <svg
+          className="pointer-events-none absolute bottom-[18px] right-0"
+          width="120"
+          height="44"
+          viewBox="0 0 120 44"
+          aria-hidden="true"
+        >
+          <path d="M62 44 120 0v14L80 44Z" fill="#FF9933" />
+          <path d="M80 44l40-30v10L98 44Z" fill="#f4f4f4" />
+          <path d="M98 44l22-20v20Z" fill="#138808" />
+        </svg>
+      )}
     </>
+  );
+}
+
+/** Small tricolor brushstroke with an Ashoka Chakra, shown beside the member's name. */
+function TricolorBrush() {
+  return (
+    <svg width="44" height="14" viewBox="0 0 44 14" aria-hidden="true" className="flex-shrink-0">
+      <path d="M1 4C10 0 20 1 28 2s11 1 15 0c-3 3-9 4-16 4S7 6 1 4Z" fill="#FF9933" />
+      <path d="M2 7c8 2 17 2 25 1s11-2 15-1c-3 3-9 4-16 4S8 9 2 7Z" fill="#e9e9e9" />
+      <path d="M3 10c8 2 17 3 25 2s11-1 14-1c-3 2-9 3-16 3S9 12 3 10Z" fill="#138808" />
+      <g transform="translate(21 7)" stroke="#0a1929" strokeWidth="0.6" fill="none">
+        <circle r="4.2" />
+        <circle r="0.8" fill="#0a1929" stroke="none" />
+        {Array.from({ length: 12 }).map((_, i) => (
+          <line
+            key={i}
+            x1="0"
+            y1="0"
+            x2={(4.2 * Math.cos((i * Math.PI) / 6)).toFixed(2)}
+            y2={(4.2 * Math.sin((i * Math.PI) / 6)).toFixed(2)}
+          />
+        ))}
+      </g>
+    </svg>
   );
 }
 
@@ -231,21 +287,23 @@ function OrgHeader({ compact = false }: { compact?: boolean }) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.png" alt="BNMS" className={compact ? "h-6 w-6" : "h-[30px] w-[30px]"} />
       </div>
-      <div className="min-w-0">
-        <div
-          className={`font-heading font-extrabold leading-none text-[#0a1929] ${
-            compact ? "text-[12px]" : "text-[15px]"
-          }`}
-        >
-          भारतीय नमो संघ
-        </div>
-        <div className="mt-[3px] flex items-center gap-1.5">
-          <span className={`font-semibold text-[#0a1929]/70 ${compact ? "text-[6.5px]" : "text-[7.5px]"}`}>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-1.5">
+          <span
+            className={`font-heading font-extrabold leading-none text-[#0a1929] whitespace-nowrap ${
+              compact ? "text-[12px]" : "text-[15px]"
+            }`}
+          >
+            भारतीय नमो संघ
+          </span>
+          <span className={`font-semibold text-[#0a1929]/70 leading-none ${compact ? "text-[6.5px]" : "text-[7.5px]"}`}>
             (BNMS)
           </span>
+        </div>
+        <div className="mt-[3px]">
           <span
-            className={`inline-block rounded-full bg-saffron-600 text-white font-semibold leading-none ${
-              compact ? "px-1.5 py-[2px] text-[6px]" : "px-1.5 py-[2.5px] text-[6.5px]"
+            className={`inline-block max-w-full rounded-full bg-saffron-600 text-white font-semibold leading-none whitespace-nowrap ${
+              compact ? "px-1.5 py-[2px] text-[6px]" : "px-2 py-[2.5px] text-[6.5px]"
             }`}
           >
             राष्ट्र सेवा में समर्पित सामाजिक महासंघ
@@ -476,9 +534,9 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
         <div className={`w-full max-w-[400px] ${side === "front" ? "" : "hidden xl:block"}`}>
           <ScaledCard>
             <div ref={frontRef} className={cardBase} style={cardStyle}>
-              <TricolorCorners />
+              <TricolorAccents bottom />
               <LanyardHole />
-              <span className="absolute top-[13px] right-6 z-10 text-[6.5px] font-semibold text-[#0a1929]/70 tracking-wide">
+              <span className="absolute top-[13px] right-9 z-10 text-[6.5px] font-semibold text-[#0a1929]/70 tracking-wide">
                 {REGD_NO}
               </span>
 
@@ -488,7 +546,7 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
 
               {/* Photo + identity + ID bar */}
               <div className="relative z-10 px-3 pt-2 flex items-start gap-2.5">
-                <div className="flex-shrink-0 h-[104px] w-[82px] rounded-md overflow-hidden border-[1.5px] border-saffron-400 bg-saffron-50">
+                <div className="flex-shrink-0 h-[110px] w-[86px] rounded-md overflow-hidden border-[1.5px] border-saffron-400 bg-saffron-50">
                   {member.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -504,8 +562,9 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
                   )}
                 </div>
 
-                <div className="min-w-0 flex-1 h-[104px] flex flex-col">
-                  <h2 className="font-heading text-[13px] font-bold leading-[1.15] line-clamp-2 break-words">
+                <div className="min-w-0 flex-1 h-[110px] flex flex-col">
+                  <TricolorBrush />
+                  <h2 className="mt-[2px] font-heading text-[13px] font-bold leading-[1.15] line-clamp-2 break-words">
                     {member.first_name} {member.last_name}
                   </h2>
                   {member.designation && (
@@ -541,7 +600,7 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
               </div>
 
               {/* Detail rows */}
-              <div className="relative z-10 px-3 flex-1 flex flex-col justify-center gap-[5px] text-[8px] leading-none">
+              <div className="relative z-10 px-3 pb-[18px] flex-1 min-h-0 flex flex-col justify-center gap-[5px] text-[8px] leading-none">
                 <div className="flex items-center gap-1.5">
                   <IconCalendar className="h-[9px] w-[9px] flex-shrink-0 text-saffron-700" />
                   <span className="text-[#0a1929]/60">निर्गमन तिथि:</span>
@@ -560,7 +619,7 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
               </div>
 
               {/* Bottom bar */}
-              <div className="relative z-10 bg-[#0a1929] text-white px-3 h-[18px] flex items-center justify-center gap-1.5 text-[7.5px] font-semibold tracking-wide">
+              <div className="absolute inset-x-0 bottom-0 z-20 bg-[#0a1929] text-white px-3 h-[18px] flex items-center justify-center gap-1.5 text-[7.5px] font-semibold tracking-wide">
                 <IconGlobe className="h-[9px] w-[9px] text-saffron-400" />
                 <span>{WEBSITE_LABEL}</span>
               </div>
@@ -572,24 +631,31 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
         <div className={`w-full max-w-[400px] ${side === "back" ? "" : "hidden xl:block"}`}>
           <ScaledCard>
             <div ref={backRef} className={cardBase} style={cardStyle}>
-              <TricolorCorners />
+              <TricolorAccents />
               <LanyardHole />
 
               <div className="relative z-10">
                 <OrgHeader compact />
               </div>
 
-              <div className="relative z-10 px-3 pt-2 pb-1.5 flex-1 min-h-0 flex gap-2.5">
+              <div className="relative z-10 px-3 pt-2 pb-[24px] flex-1 min-h-0 flex gap-2.5">
                 {/* Terms + barcode */}
                 <div className="w-[56%] min-w-0 flex flex-col">
-                  <h3 className="text-[7.5px] font-bold leading-none text-saffron-800 border-b border-saffron-200 pb-[3px] mb-[4px]">
-                    निर्देश / शर्तें
-                  </h3>
-                  <ol className="space-y-[3px] text-[7.5px] leading-[1.35] text-[#0a1929]/85 list-decimal pl-[11px]">
+                  <div className="mb-[5px]">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#0f6b1f] text-white px-2 py-[2.5px] text-[7px] font-bold leading-none">
+                      <span className="h-[3px] w-[3px] rounded-full bg-white/90" aria-hidden="true" />
+                      निर्देश / शर्तें
+                      <span className="h-[3px] w-[3px] rounded-full bg-white/90" aria-hidden="true" />
+                    </span>
+                  </div>
+                  <ul className="space-y-[3px] text-[7.5px] leading-[1.35] text-[#0a1929]/85">
                     {TERMS.map((t) => (
-                      <li key={t}>{t}</li>
+                      <li key={t} className="flex items-start gap-1">
+                        <IconCheck className="h-[8px] w-[8px] flex-shrink-0 mt-[1px] text-[#138808]" />
+                        <span>{t}</span>
+                      </li>
                     ))}
-                  </ol>
+                  </ul>
                   <div className="mt-auto pt-1 flex flex-col items-center">
                     <canvas
                       ref={barcodeCanvasRef}
@@ -631,17 +697,20 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
                     {hasSocial && (
                       <div className="flex items-center gap-1">
                         {org?.facebook_url && (
-                          <span className="h-[14px] w-[14px] rounded-full bg-[#0a1929] text-white flex items-center justify-center">
+                          <span className="h-[14px] w-[14px] rounded-full bg-[#1877F2] text-white flex items-center justify-center">
                             <IconFacebook className="h-[8px] w-[8px]" />
                           </span>
                         )}
                         {org?.instagram_url && (
-                          <span className="h-[14px] w-[14px] rounded-full bg-[#0a1929] text-white flex items-center justify-center">
+                          <span
+                            className="h-[14px] w-[14px] rounded-full text-white flex items-center justify-center"
+                            style={{ background: "linear-gradient(45deg, #f9ce34 0%, #ee2a7b 50%, #6228d7 100%)" }}
+                          >
                             <IconInstagram className="h-[8px] w-[8px]" />
                           </span>
                         )}
                         {org?.youtube_url && (
-                          <span className="h-[14px] w-[14px] rounded-full bg-[#0a1929] text-white flex items-center justify-center">
+                          <span className="h-[14px] w-[14px] rounded-full bg-[#FF0000] text-white flex items-center justify-center">
                             <IconYoutube className="h-[8px] w-[8px]" />
                           </span>
                         )}
@@ -653,7 +722,7 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
               </div>
 
               {/* Bottom bar */}
-              <div className="relative z-10 bg-[#0a1929] px-3 py-[3px] text-center">
+              <div className="absolute inset-x-0 bottom-0 z-20 bg-[#0a1929] px-3 py-[3px] text-center">
                 <p className="text-[6px] leading-[1.3] font-semibold text-[#f2c94c]">{BACK_TAGLINE}</p>
               </div>
             </div>
