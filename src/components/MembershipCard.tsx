@@ -5,6 +5,9 @@ import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 import { toPng } from "html-to-image";
 import { createClient } from "@/lib/supabase/client";
+import { formatMembershipId, barcodeValue, verificationUrl as buildVerificationUrl } from "@/lib/membership";
+
+export { formatMembershipId, barcodeValue, getStateCode } from "@/lib/membership";
 
 /* ------------------------------------------------------------------ */
 /*  Physical size: ISO/IEC 7810 ID-1 (Aadhaar / PAN / bank card)       */
@@ -58,18 +61,6 @@ interface OrgContact {
   youtube_url: string | null;
 }
 
-const STATE_CODES: Record<string, string> = {
-  delhi: "DL",
-  maharashtra: "MH",
-  karnataka: "KA",
-  rajasthan: "RJ",
-  "uttar pradesh": "UP",
-  gujarat: "GJ",
-  "west bengal": "WB",
-  "tamil nadu": "TN",
-  "madhya pradesh": "MP",
-};
-
 const WEBSITE_LABEL = "www.bhartiyanamosangh.com";
 const SOCIAL_HANDLE = "/ BNMSOfficial";
 const REGD_NO = "Regd. No. 1086";
@@ -84,23 +75,6 @@ const TERMS = [
 
 const BACK_TAGLINE =
   "एक संगठन जो भारत द्वारा जन कल्याणकारी योजनाओं की हर कड़ी एवं जन-जन तक पहुंचाने के लिए प्रतिबद्ध हैं।";
-
-export function getStateCode(state: string | null | undefined): string {
-  if (!state) return "IN";
-  return STATE_CODES[state.trim().toLowerCase()] || "IN";
-}
-
-export function formatMembershipId(
-  membershipNumber: number,
-  state: string | null | undefined
-): string {
-  const padded = membershipNumber.toString().padStart(4, "0");
-  return `BNMS/${getStateCode(state)}/MEM/${padded}`;
-}
-
-export function barcodeValue(membershipNumber: number): string {
-  return `BNMS${membershipNumber.toString().padStart(4, "0")}`;
-}
 
 function formatDDMMYYYY(dateStr: string): string {
   const d = new Date(dateStr);
@@ -330,7 +304,7 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
   const [side, setSide] = useState<"front" | "back">("front");
   const [org, setOrg] = useState<OrgContact | null>(null);
 
-  const verificationUrl = `https://bhartiya-namo-sangh-git-main-namosangh.vercel.app/verify/${member.id}`;
+  const verificationUrl = buildVerificationUrl(member.id);
   const stateName = member.branch?.state ?? null;
   const membershipId = formatMembershipId(member.membership_number, stateName);
   const barcodeText = barcodeValue(member.membership_number);

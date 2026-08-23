@@ -82,11 +82,16 @@ export interface Member {
 // Public membership verification (for QR code scan page)
 export interface PublicMembershipVerification {
   id: string;
+  first_name: string;
+  last_name: string;
   name: string;
+  avatar_url: string | null;
   photo: string | null;
+  designation: string | null;
   membership_type: MembershipType | null;
   membership_number: number;
   branch_name: string | null;
+  branch_state: string | null;
   status: MemberStatus;
   membership_issued_at: string;
   membership_expires_at: string | null;

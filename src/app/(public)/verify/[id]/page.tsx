@@ -1,14 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
+import { formatMembershipId } from "@/lib/membership";
 import type { PublicMembershipVerification } from "@/lib/supabase/types";
 
 interface Props {
   params: Promise<{ id: string }>;
-}
-
-function formatMembershipNumber(membershipNumber: number, issuedAt: string): string {
-  const year = new Date(issuedAt).getFullYear().toString().slice(-2);
-  const paddedNumber = membershipNumber.toString().padStart(4, "0");
-  return `BNMS/MEM/${paddedNumber}/${year}`;
 }
 
 function formatDate(dateStr: string): string {
@@ -76,6 +71,12 @@ export default async function VerifyMemberPage({ params }: Props) {
   }
 
   const verifiedMember = member as PublicMembershipVerification;
+  // Be tolerant of either view shape (name/photo or first_name/last_name/avatar_url).
+  const fullName =
+    verifiedMember.name ||
+    [verifiedMember.first_name, verifiedMember.last_name].filter(Boolean).join(" ") ||
+    "Member";
+  const photo = verifiedMember.photo ?? verifiedMember.avatar_url ?? null;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-saffron-50 to-white px-4 py-8">
@@ -144,9 +145,10 @@ export default async function VerifyMemberPage({ params }: Props) {
 
             {/* Member info */}
             <div className="flex items-center gap-4 mb-6">
-              {verifiedMember.photo ? (
+              {photo ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={verifiedMember.photo}
+                  src={photo}
                   alt=""
                   className={`h-20 w-20 rounded-full object-cover border-2 ${
                     verifiedMember.membership_type === "lifetime"
@@ -165,14 +167,19 @@ export default async function VerifyMemberPage({ params }: Props) {
                     : "border-saffron-200"
                 }`}>
                   <span className="text-2xl font-bold text-saffron-700">
-                    {verifiedMember.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
+                    {fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                   </span>
                 </div>
               )}
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {verifiedMember.name}
+                  {fullName}
                 </h3>
+                {verifiedMember.designation && (
+                  <p className="text-sm font-medium text-[#138808]">
+                    {verifiedMember.designation}
+                  </p>
+                )}
                 <p className="text-sm text-gray-500">
                   {verifiedMember.branch_name || "Member"}
                 </p>
@@ -184,9 +191,9 @@ export default async function VerifyMemberPage({ params }: Props) {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-500">Membership No.</span>
                 <span className="font-mono font-semibold text-gray-900">
-                  {formatMembershipNumber(
+                  {formatMembershipId(
                     verifiedMember.membership_number,
-                    verifiedMember.membership_issued_at
+                    verifiedMember.branch_state
                   )}
                 </span>
               </div>
