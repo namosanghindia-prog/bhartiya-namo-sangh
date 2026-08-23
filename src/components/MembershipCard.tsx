@@ -37,6 +37,8 @@ interface MembershipCardProps {
     membership_type?: string | null;
     membership_expires_at?: string | null;
     designation?: string | null;
+    /** Member's own mobile number (members.phone) — shown on the front. */
+    phone?: string | null;
     branch?: { name: string; state?: string | null } | null;
   };
   showDownload?: boolean;
@@ -614,7 +616,7 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
                 <div className="flex items-center gap-1.5">
                   <IconPhone className="h-[9px] w-[9px] flex-shrink-0 text-saffron-700" />
                   <span className="text-[#0a1929]/60">संपर्क:</span>
-                  <span className="font-semibold">{phones.length ? phones.join(", ") : "—"}</span>
+                  <span className="font-semibold">{member.phone?.trim() || "—"}</span>
                 </div>
               </div>
 

@@ -15,6 +15,7 @@ interface MemberWithBranch {
   membership_issued_at: string | null;
   membership_expires_at: string | null;
   designation: string | null;
+  phone: string | null;
   branch: { name: string; state: string | null } | null;
 }
 
@@ -108,6 +109,7 @@ export default function IDCardPage() {
                 membership_type: member.membership_type,
                 membership_expires_at: member.membership_expires_at,
                 designation: member.designation,
+                phone: member.phone,
                 branch: member.branch,
               }}
               showDownload={true}

@@ -554,6 +554,7 @@ export default function AdminMembersPage() {
                     membership_type: selectedMember.membership_type,
                     membership_expires_at: selectedMember.membership_expires_at,
                     designation: selectedMember.designation,
+                    phone: selectedMember.phone,
                     branch: selectedMember.branch?.[0] || null,
                   }}
                   showDownload={true}
