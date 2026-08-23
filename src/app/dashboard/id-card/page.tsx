@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import MembershipCard from "@/components/MembershipCard";
+import MembershipCard, { formatMembershipId } from "@/components/MembershipCard";
+
 interface MemberWithBranch {
   id: string;
   first_name: string;
@@ -13,7 +14,8 @@ interface MemberWithBranch {
   membership_number: number | null;
   membership_issued_at: string | null;
   membership_expires_at: string | null;
-  branch: { name: string } | null;
+  designation: string | null;
+  branch: { name: string; state: string | null } | null;
 }
 
 export default function IDCardPage() {
@@ -28,7 +30,7 @@ export default function IDCardPage() {
       if (user) {
         const { data, error } = await supabase
           .from("members")
-          .select("*, branch:branches(name)")
+          .select("*, branch:branches(name, state)")
           .eq("id", user.id)
           .single();
 
@@ -105,6 +107,7 @@ export default function IDCardPage() {
                 membership_issued_at: member.membership_issued_at!,
                 membership_type: member.membership_type,
                 membership_expires_at: member.membership_expires_at,
+                designation: member.designation,
                 branch: member.branch,
               }}
               showDownload={true}
@@ -130,7 +133,7 @@ export default function IDCardPage() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-saffron-600">•</span>
-                Your unique membership number: {formatMembershipNumber(member.membership_number!, member.membership_issued_at!)}
+                Your unique membership number: {formatMembershipId(member.membership_number!, member.branch?.state)}
               </li>
             </ul>
           </div>
@@ -157,8 +160,3 @@ export default function IDCardPage() {
   );
 }
 
-function formatMembershipNumber(membershipNumber: number, issuedAt: string): string {
-  const year = new Date(issuedAt).getFullYear().toString().slice(-2);
-  const paddedNumber = membershipNumber.toString().padStart(4, "0");
-  return `BNMS/MEM/${paddedNumber}/${year}`;
-}

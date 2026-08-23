@@ -4,9 +4,26 @@ import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Member, Branch } from "@/lib/supabase/types";
 
+interface ProfileChangeRequest {
+  id: string;
+  status: "pending" | "approved" | "rejected";
+  requested_first_name: string | null;
+  requested_last_name: string | null;
+  requested_designation: string | null;
+  requested_at: string;
+  reviewed_at: string | null;
+  rejection_reason: string | null;
+}
+
+function normalize(v: string | null | undefined): string {
+  return (v ?? "").trim();
+}
+
 export default function ProfilePage() {
   const [member, setMember] = useState<Member | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [changeRequest, setChangeRequest] = useState<ProfileChangeRequest | null>(null);
+  const [requestSubmitted, setRequestSubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -21,17 +38,27 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [memberRes, branchesRes] = await Promise.all([
+      const [memberRes, branchesRes, requestRes] = await Promise.all([
         supabase.from("members").select("*").eq("id", user.id).single(),
         supabase.from("branches").select("*").eq("is_active", true).order("name"),
+        supabase
+          .from("profile_change_requests")
+          .select("id, status, requested_first_name, requested_last_name, requested_designation, requested_at, reviewed_at, rejection_reason")
+          .eq("member_id", user.id)
+          .order("requested_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ]);
 
       if (memberRes.data) setMember(memberRes.data);
       if (branchesRes.data) setBranches(branchesRes.data);
+      if (requestRes.data) setChangeRequest(requestRes.data as ProfileChangeRequest);
       setLoading(false);
     }
     loadData();
   }, []);
+
+  const hasPendingRequest = changeRequest?.status === "pending";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -39,6 +66,7 @@ export default function ProfilePage() {
 
     setSaving(true);
     setSaved(false);
+    setRequestSubmitted(false);
     setError(null);
 
     if (!member.avatar_url) {
@@ -48,14 +76,31 @@ export default function ProfilePage() {
     }
 
     const formData = new FormData(e.currentTarget);
+
+    // Fields that save directly
     const updates = {
-      first_name: formData.get("firstName") as string,
-      last_name: formData.get("lastName") as string,
       phone: formData.get("phone") as string,
       branch_id: formData.get("branch") as string || null,
       address: formData.get("address") as string || null,
-      designation: formData.get("designation") as string || null,
     };
+
+    // Fields that require admin approval
+    const requestedFirstName = normalize(formData.get("firstName") as string);
+    const requestedLastName = normalize(formData.get("lastName") as string);
+    const requestedDesignation = normalize(formData.get("designation") as string);
+    // While a request is pending the identity fields are disabled (and thus
+    // absent from FormData), so only phone/branch/address can change.
+    const identityChanged =
+      !hasPendingRequest &&
+      (requestedFirstName !== normalize(member.first_name) ||
+        requestedLastName !== normalize(member.last_name) ||
+        requestedDesignation !== normalize(member.designation));
+
+    if (identityChanged && (!requestedFirstName || !requestedLastName)) {
+      setSaving(false);
+      setError("First name and last name cannot be empty.");
+      return;
+    }
 
     const supabase = createClient();
     const { error: updateError } = await supabase
@@ -63,14 +108,43 @@ export default function ProfilePage() {
       .update(updates)
       .eq("id", member.id);
 
-    setSaving(false);
-
     if (updateError) {
+      setSaving(false);
       setError(updateError.message);
       return;
     }
 
     setMember({ ...member, ...updates });
+
+    if (identityChanged) {
+      const { data: request, error: requestError } = await supabase
+        .from("profile_change_requests")
+        .insert({
+          member_id: member.id,
+          current_first_name: member.first_name,
+          current_last_name: member.last_name,
+          current_designation: member.designation,
+          requested_first_name: requestedFirstName,
+          requested_last_name: requestedLastName,
+          requested_designation: requestedDesignation || null,
+          status: "pending",
+        })
+        .select("id, status, requested_first_name, requested_last_name, requested_designation, requested_at, reviewed_at, rejection_reason")
+        .single();
+
+      setSaving(false);
+
+      if (requestError) {
+        setError("Your other details were saved, but the name/designation change request failed: " + requestError.message);
+        return;
+      }
+
+      setChangeRequest(request as ProfileChangeRequest);
+      setRequestSubmitted(true);
+      return;
+    }
+
+    setSaving(false);
     setSaved(true);
   }
 
@@ -140,6 +214,8 @@ export default function ProfilePage() {
       </div>
     );
   }
+
+  const lastRejected = changeRequest?.status === "rejected" ? changeRequest : null;
 
   const nextMilestone = 200;
   const pct = Math.min(
@@ -221,6 +297,37 @@ export default function ProfilePage() {
         <h2 className="font-heading text-lg font-semibold text-navy">
           Member details
         </h2>
+
+        {hasPendingRequest && changeRequest && (
+          <div className="rounded-md border border-saffron-300 bg-saffron-50 px-4 py-3 text-sm text-saffron-900">
+            <p className="font-semibold">
+              Your name/designation change is awaiting admin approval.
+            </p>
+            <p className="mt-1 text-xs text-navy/70">
+              Requested: <span className="font-medium text-navy">{changeRequest.requested_first_name} {changeRequest.requested_last_name}</span>
+              {changeRequest.requested_designation ? (
+                <> &middot; <span className="font-medium text-navy">{changeRequest.requested_designation}</span></>
+              ) : null}
+              {" "}on {new Date(changeRequest.requested_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}.
+              Your ID card will update once approved. You cannot submit another change until this one is reviewed.
+            </p>
+          </div>
+        )}
+
+        {lastRejected && (
+          <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <p className="font-semibold">Your last name/designation change request was rejected.</p>
+            {lastRejected.rejection_reason && (
+              <p className="mt-1 text-xs">Reason: {lastRejected.rejection_reason}</p>
+            )}
+            <p className="mt-1 text-xs text-red-700/80">You can submit a new request below.</p>
+          </div>
+        )}
+
+        <p className="text-xs text-navy/50">
+          Changes to your name or designation require admin approval (they appear on your ID card). Other details save immediately.
+        </p>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm text-navy/70 mb-1">
@@ -230,7 +337,8 @@ export default function ProfilePage() {
               name="firstName"
               defaultValue={member.first_name}
               required
-              className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+              disabled={hasPendingRequest}
+              className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400 disabled:bg-saffron-50 disabled:text-navy/60"
             />
           </div>
           <div>
@@ -241,7 +349,8 @@ export default function ProfilePage() {
               name="lastName"
               defaultValue={member.last_name}
               required
-              className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+              disabled={hasPendingRequest}
+              className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400 disabled:bg-saffron-50 disabled:text-navy/60"
             />
           </div>
         </div>
@@ -252,7 +361,8 @@ export default function ProfilePage() {
             name="designation"
             defaultValue={member.designation ?? ""}
             placeholder="e.g. Volunteer Coordinator, Event Manager"
-            className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+            disabled={hasPendingRequest}
+            className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400 disabled:bg-saffron-50 disabled:text-navy/60"
           />
         </div>
 
@@ -300,6 +410,12 @@ export default function ProfilePage() {
         {saved && (
           <p className="text-sm text-forest bg-forest/10 rounded-md px-3 py-2">
             Profile updated successfully!
+          </p>
+        )}
+
+        {requestSubmitted && (
+          <p className="text-sm text-forest bg-forest/10 rounded-md px-3 py-2">
+            Your details were saved and your name/designation change has been sent to the admin for approval.
           </p>
         )}
 

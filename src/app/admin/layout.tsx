@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: "📊" },
   { href: "/admin/approvals", label: "Approvals", icon: "✅", badgeKey: "approvals" },
   { href: "/admin/membership-payments", label: "Membership Payments", icon: "💳", badgeKey: "membershipPayments" },
+  { href: "/admin/profile-changes", label: "Profile Changes", icon: "📝", badgeKey: "profileChanges" },
   { href: "/admin/members", label: "Members", icon: "👥" },
   { href: "/admin/coupons", label: "VIP Coupons", icon: "🎟️" },
   { href: "/admin/businesses", label: "Businesses", icon: "🏪" },
@@ -39,16 +40,18 @@ export default function AdminLayout({
     async function fetchData() {
       const supabase = createClient();
 
-      const [approvalsRes, membershipPaymentsRes, promotionsRes] = await Promise.all([
+      const [approvalsRes, membershipPaymentsRes, promotionsRes, profileChangesRes] = await Promise.all([
         supabase.from("members").select("*", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("members").select("*", { count: "exact", head: true }).eq("status", "approved_awaiting_payment").eq("membership_payment_status", "submitted"),
         supabase.from("business_promotions").select("*", { count: "exact", head: true }).in("status", ["requested", "payment_submitted", "payment_confirmed"]),
+        supabase.from("profile_change_requests").select("*", { count: "exact", head: true }).eq("status", "pending"),
       ]);
 
       setBadgeCounts({
         approvals: approvalsRes.count || 0,
         membershipPayments: membershipPaymentsRes.count || 0,
         promotions: promotionsRes.count || 0,
+        profileChanges: profileChangesRes.count || 0,
       });
 
       const { data: { user } } = await supabase.auth.getUser();

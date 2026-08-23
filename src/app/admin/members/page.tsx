@@ -24,7 +24,7 @@ interface Member {
   membership_issued_at: string | null;
   membership_expires_at: string | null;
   created_at: string;
-  branch: { name: string }[] | null;
+  branch: { name: string; state: string | null }[] | null;
 }
 
 function formatDate(iso: string) {
@@ -60,7 +60,7 @@ export default function AdminMembersPage() {
           designation, address, city, state, branch_id,
           membership_type, membership_number, membership_issued_at,
           membership_expires_at, created_at,
-          branch:branches(name)
+          branch:branches(name, state)
         `)
         .order("created_at", { ascending: false }),
       supabase
@@ -553,6 +553,7 @@ export default function AdminMembersPage() {
                     membership_issued_at: selectedMember.membership_issued_at,
                     membership_type: selectedMember.membership_type,
                     membership_expires_at: selectedMember.membership_expires_at,
+                    designation: selectedMember.designation,
                     branch: selectedMember.branch?.[0] || null,
                   }}
                   showDownload={true}
