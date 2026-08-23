@@ -193,7 +193,7 @@ function IconYoutube({ className }: { className?: string }) {
   return (
     <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
-      <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="white" />
+      <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="#0a1929" />
     </svg>
   );
 }
@@ -203,16 +203,16 @@ function IconYoutube({ className }: { className?: string }) {
 function TricolorCorners() {
   // Diagonal saffron / white / green bands tucked into each top corner.
   const bands = (angle: number) =>
-    `linear-gradient(${angle}deg, #FF9933 0 14px, #f4f4f4 14px 26px, #138808 26px 40px, transparent 40px)`;
+    `linear-gradient(${angle}deg, #FF9933 0 12px, #f4f4f4 12px 22px, #138808 22px 34px, transparent 34px)`;
   return (
     <>
       <div
-        className="pointer-events-none absolute top-0 left-0 h-14 w-14"
+        className="pointer-events-none absolute top-0 left-0 h-12 w-12"
         style={{ background: bands(135), clipPath: "polygon(0 0, 100% 0, 0 100%)" }}
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute top-0 right-0 h-14 w-14"
+        className="pointer-events-none absolute top-0 right-0 h-12 w-12"
         style={{ background: bands(225), clipPath: "polygon(0 0, 100% 0, 100% 100%)" }}
         aria-hidden="true"
       />
@@ -231,7 +231,7 @@ function LanyardHole() {
 
 function OrgHeader({ compact = false }: { compact?: boolean }) {
   return (
-    <div className={`flex items-center gap-3 ${compact ? "px-4 pt-6" : "px-4 pt-7"}`}>
+    <div className={`flex items-center gap-3 ${compact ? "px-4 pt-6" : "px-4 pt-11"}`}>
       <div
         className={`flex-shrink-0 rounded-full bg-white border-2 border-saffron-500 shadow-sm flex items-center justify-center overflow-hidden ${
           compact ? "h-11 w-11" : "h-14 w-14"
@@ -435,7 +435,7 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
         >
           <TricolorCorners />
           <LanyardHole />
-          <span className="absolute top-[34px] right-3 z-10 text-[9px] font-semibold text-[#0a1929]/70 tracking-wide">
+          <span className="absolute top-[28px] right-5 z-10 text-[9px] font-semibold text-[#0a1929]/70 tracking-wide">
             {REGD_NO}
           </span>
 
@@ -444,8 +444,8 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
           </div>
 
           {/* Photo + identity */}
-          <div className="relative z-10 px-4 pt-4 flex items-start gap-4">
-            <div className="flex-shrink-0 h-[96px] w-[80px] rounded-lg overflow-hidden border-2 border-saffron-400 bg-saffron-50 shadow-sm">
+          <div className="relative z-10 px-4 pt-5 flex items-start gap-4">
+            <div className="flex-shrink-0 h-[112px] w-[92px] rounded-lg overflow-hidden border-2 border-saffron-400 bg-saffron-50 shadow-sm">
               {member.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -460,23 +460,23 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
                 </div>
               )}
             </div>
-            <div className="min-w-0 flex-1 pt-1">
-              <h2 className="font-heading text-xl font-bold leading-tight break-words">
+            <div className="min-w-0 flex-1 pt-2">
+              <h2 className="font-heading text-[22px] font-bold leading-tight break-words">
                 {member.first_name} {member.last_name}
               </h2>
               {member.designation && (
-                <p className="mt-1 text-sm font-semibold text-[#138808] break-words">
+                <p className="mt-1.5 text-[15px] font-semibold text-[#138808] break-words">
                   {member.designation}
                 </p>
               )}
               {stateName && (
-                <p className="mt-0.5 text-xs text-[#0a1929]/70">{stateName}</p>
+                <p className="mt-1 text-[13px] text-[#0a1929]/70">{stateName}</p>
               )}
             </div>
           </div>
 
           {/* Member number bar */}
-          <div className="relative z-10 mt-4 mx-4 rounded-lg bg-[#0a1929] text-white px-3 py-2 flex items-center justify-between gap-3">
+          <div className="relative z-10 mt-5 mx-4 rounded-lg bg-[#0a1929] text-white px-3 py-2.5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <IconUser className="h-5 w-5 flex-shrink-0 text-saffron-400" />
               <div className="min-w-0">
@@ -495,7 +495,7 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
           </div>
 
           {/* Detail rows */}
-          <div className="relative z-10 px-4 pt-3 pb-3 space-y-2 text-xs">
+          <div className="relative z-10 px-4 pt-4 pb-3 space-y-2.5 text-[13px]">
             <div className="flex items-start gap-2">
               <IconCalendar className="h-4 w-4 flex-shrink-0 text-saffron-700 mt-0.5" />
               <div>
@@ -520,6 +520,10 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
           </div>
 
           <div className="flex-1" />
+
+          <p className="relative z-10 px-4 pb-2 text-center text-[9px] text-[#0a1929]/50">
+            सत्यापन हेतु QR कोड स्कैन करें · Scan QR to verify membership
+          </p>
 
           {/* Bottom bar */}
           <div className="relative z-10 bg-[#0a1929] text-white px-4 py-2 flex items-center justify-center gap-2 text-xs font-semibold tracking-wide">
