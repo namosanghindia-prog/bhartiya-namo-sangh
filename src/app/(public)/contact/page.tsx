@@ -361,7 +361,6 @@ export default function ContactPage() {
                     ["Branch", "Dwarka, New Delhi – 110075"],
                     ["Account Number", "92202000547190"],
                     ["IFSC Code", "UTIB0003893"],
-                    ["Branch Code", "000460"],
                   ].map(([label, value]) => (
                     <div
                       key={label}
