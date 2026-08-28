@@ -67,6 +67,15 @@ const WEBSITE_LABEL = "www.bhartiyanamosangh.com";
 const SOCIAL_HANDLE = "/ BNMSOfficial";
 const REGD_NO = "Regd. No. 1086";
 
+/* Statutory registration details printed along the bottom of the card front.
+   Grouped onto three lines because five separate lines would not leave enough
+   height for the detail rows above them. */
+const REGISTRATION_LINES = [
+  "Reg. by Planning Commission NITI Aayog",
+  "Unique ID of NGO: DL/2018/0185185  ·  Certificate No.: IN-DL8246933040808BP",
+  "Registration CSR Activities: CSR00062225  ·  National Level Society/NGO/Trust | Regd. No. 1086",
+];
+
 const TERMS = [
   "यह पहचान पत्र केवल भारतीय नमो संघ (BNMS) के कार्य हेतु मान्य है।",
   "यह कार्ड किसी अन्य को हस्तांतरित नहीं किया जा सकता।",
@@ -541,6 +550,13 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
               <span className="absolute top-[13px] right-9 z-10 text-[6.5px] font-semibold text-[#0a1929]/70 tracking-wide">
                 {REGD_NO}
               </span>
+              {/* Organisation emblem, tucked under the Regd. No. in the top-right corner. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/nm.png"
+                alt=""
+                className="absolute top-[26px] right-[14px] z-10 h-[40px] w-[40px] object-contain"
+              />
 
               <div className="relative z-10">
                 <OrgHeader />
@@ -602,7 +618,7 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
               </div>
 
               {/* Detail rows */}
-              <div className="relative z-10 px-3 pb-[18px] flex-1 min-h-0 flex flex-col justify-center gap-[5px] text-[8px] leading-none">
+              <div className="relative z-10 px-3 pb-[32px] flex-1 min-h-0 flex flex-col justify-center gap-[5px] text-[8px] leading-none">
                 <div className="flex items-center gap-1.5">
                   <IconCalendar className="h-[9px] w-[9px] flex-shrink-0 text-saffron-700" />
                   <span className="text-[#0a1929]/60">निर्गमन तिथि:</span>
@@ -620,10 +636,18 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
                 </div>
               </div>
 
-              {/* Bottom bar */}
-              <div className="absolute inset-x-0 bottom-0 z-20 bg-[#0a1929] text-white px-3 h-[18px] flex items-center justify-center gap-1.5 text-[7.5px] font-semibold tracking-wide">
-                <IconGlobe className="h-[9px] w-[9px] text-saffron-400" />
-                <span>{WEBSITE_LABEL}</span>
+              {/* Bottom bar — statutory registration details. This replaced the
+                  website strip; the website still appears in the contact block
+                  on the back. */}
+              <div className="absolute inset-x-0 bottom-0 z-20 bg-[#0a1929] text-white px-3 py-[3px] text-center">
+                <p className="text-[6px] leading-[1.35] font-bold tracking-wide text-[#f2c94c]">
+                  {REGISTRATION_LINES[0]}
+                </p>
+                {REGISTRATION_LINES.slice(1).map((line) => (
+                  <p key={line} className="text-[6px] leading-[1.35] text-white/85">
+                    {line}
+                  </p>
+                ))}
               </div>
             </div>
           </ScaledCard>
