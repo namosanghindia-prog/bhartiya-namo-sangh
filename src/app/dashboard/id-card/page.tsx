@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import MembershipCard, { formatMembershipId } from "@/components/MembershipCard";
+import IdCardOrderPanel from "@/components/IdCardOrderPanel";
 
 interface MemberWithBranch {
   id: string;
@@ -16,6 +17,10 @@ interface MemberWithBranch {
   membership_expires_at: string | null;
   designation: string | null;
   phone: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  pincode: string | null;
   branch: { name: string; state: string | null } | null;
 }
 
@@ -96,50 +101,64 @@ export default function IDCardPage() {
       </div>
 
       {isApproved ? (
-        <div className="rounded-xl border border-saffron-200 bg-white p-6">
-          <div className="flex flex-col items-center">
-            <MembershipCard
-              member={{
-                id: member.id,
-                first_name: member.first_name,
-                last_name: member.last_name,
-                avatar_url: member.avatar_url,
-                membership_number: member.membership_number!,
-                membership_issued_at: member.membership_issued_at!,
-                membership_type: member.membership_type,
-                membership_expires_at: member.membership_expires_at,
-                designation: member.designation,
-                phone: member.phone,
-                branch: member.branch,
-              }}
-              showDownload={true}
-            />
-          </div>
+        <>
+          <div className="rounded-xl border border-saffron-200 bg-white p-6">
+            <div className="flex flex-col items-center">
+              <MembershipCard
+                member={{
+                  id: member.id,
+                  first_name: member.first_name,
+                  last_name: member.last_name,
+                  avatar_url: member.avatar_url,
+                  membership_number: member.membership_number!,
+                  membership_issued_at: member.membership_issued_at!,
+                  membership_type: member.membership_type,
+                  membership_expires_at: member.membership_expires_at,
+                  designation: member.designation,
+                  phone: member.phone,
+                  branch: member.branch,
+                }}
+                showDownload={true}
+              />
+            </div>
 
-          <div className="mt-6 pt-6 border-t border-saffron-100">
-            <h3 className="font-heading text-sm font-semibold text-navy mb-2">
-              About your ID Card
-            </h3>
-            <ul className="space-y-2 text-sm text-navy/70">
-              <li className="flex items-start gap-2">
-                <span className="text-saffron-600">•</span>
-                This is your official Bhartiya Namo Sangh membership ID card
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-saffron-600">•</span>
-                Download the card and keep it safe for events and activities
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-saffron-600">•</span>
-                The QR code can be scanned to verify your membership
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-saffron-600">•</span>
-                Your unique membership number: {formatMembershipId(member.membership_number!, member.branch?.state)}
-              </li>
-            </ul>
+            <div className="mt-6 pt-6 border-t border-saffron-100">
+              <h3 className="font-heading text-sm font-semibold text-navy mb-2">
+                About your ID Card
+              </h3>
+              <ul className="space-y-2 text-sm text-navy/70">
+                <li className="flex items-start gap-2">
+                  <span className="text-saffron-600">•</span>
+                  This is your official Bhartiya Namo Sangh membership ID card
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-saffron-600">•</span>
+                  Download the card and keep it safe for events and activities
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-saffron-600">•</span>
+                  The QR code can be scanned to verify your membership
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-saffron-600">•</span>
+                  Your unique membership number: {formatMembershipId(member.membership_number!, member.branch?.state)}
+                </li>
+              </ul>
+            </div>
           </div>
-        </div>
+          <IdCardOrderPanel
+            member={{
+              id: member.id,
+              first_name: member.first_name,
+              last_name: member.last_name,
+              phone: member.phone,
+              address: member.address,
+              city: member.city,
+              state: member.state,
+              pincode: member.pincode,
+            }}
+          />
+        </>
       ) : (
         <div className="rounded-xl border border-saffron-200 bg-white p-12 text-center">
           <div className="text-4xl mb-3">⏳</div>

@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { href: "/admin/businesses", label: "Businesses", icon: "🏪" },
   { href: "/admin/promotions", label: "Promotions", icon: "📣", badgeKey: "promotions" },
   { href: "/admin/events", label: "Events", icon: "📅" },
+  { href: "/admin/id-card-orders", label: "ID Card Orders", icon: "📦" },
   { href: "/admin/donations", label: "Donations", icon: "💰" },
   { href: "/admin/branches", label: "Branches", icon: "🏢" },
   { href: "/admin/homepage-slider", label: "Homepage Slider", icon: "🖼️" },

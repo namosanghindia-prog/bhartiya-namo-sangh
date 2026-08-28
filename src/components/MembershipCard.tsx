@@ -283,11 +283,11 @@ function OrgHeader({ compact = false }: { compact?: boolean }) {
     <div className={`flex items-center gap-2 px-3 ${compact ? "pt-[14px]" : "pt-4"}`}>
       <div
         className={`flex-shrink-0 rounded-full bg-white border-[1.5px] border-saffron-500 flex items-center justify-center overflow-hidden ${
-          compact ? "h-7 w-7" : "h-9 w-9"
+          compact ? "h-7 w-7" : "h-12 w-12"
         }`}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="BNMS" className={compact ? "h-6 w-6" : "h-[30px] w-[30px]"} />
+        <img src="/logo.png" alt="BNMS" className={compact ? "h-6 w-6" : "h-[42px] w-[42px]"} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-1.5">
@@ -670,8 +670,19 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
                   </div>
                 </div>
 
-                {/* Contact + social */}
+                {/* Emblem + contact + social */}
                 <div className="flex-1 min-w-0 flex flex-col">
+                  {/* Organisation emblem. Sits above the contact block, which is
+                      why the contact details start lower on the back than the
+                      terms list does on the left. */}
+                  <div className="flex justify-center pb-[6px]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/nm.png"
+                      alt=""
+                      className="h-[52px] w-[52px] object-contain"
+                    />
+                  </div>
                   <div className="rounded-md border border-saffron-200 bg-saffron-50 px-2 py-1.5">
                     <h3 className="text-[7.5px] font-bold leading-none text-saffron-800 mb-[5px]">संपर्क करें</h3>
                     <ul className="space-y-[3px] text-[7px] leading-[1.3]">
