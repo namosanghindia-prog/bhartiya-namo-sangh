@@ -1,8 +1,16 @@
 name: Keep Supabase Alive
 
+# Supabase pauses Free-plan projects after 7 days without database activity.
+# This is the backup pinger; the primary is the Vercel cron in vercel.json.
+#
+# IMPORTANT: this job must FAIL on anything other than HTTP 200. The previous
+# version used a bare `curl -s`, which exits 0 even on a 401, so months of runs
+# reported green while every single ping was rejected for a missing API key and
+# the project paused anyway.
+
 on:
   schedule:
-    - cron: '0 3 * * *'   # runs daily at 03:00 UTC — safely under the 7-day pause threshold
+    - cron: '0 3 * * *'   # daily 03:00 UTC — well under the 7-day threshold
   workflow_dispatch: {}    # lets you trigger it manually to test
 
 jobs:
@@ -10,8 +18,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping Supabase REST API
+        env:
+          SUPABASE_URL: https://prkfshuqdhjaxkuzjrwn.supabase.co
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          curl -s -o /dev/null -w "Status: %{http_code}\n" \
-            "https://prkfshuqdhjaxkuzjrwn.supabase.co/rest/v1/branches?select=id&limit=1" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
+          set -euo pipefail
+
+          if [ -z "${SUPABASE_ANON_KEY}" ]; then
+            echo "::error::SUPABASE_ANON_KEY secret is not set. Add it under" \
+                 "Settings → Secrets and variables → Actions, or this ping is a no-op."
+            exit 1
+          fi
+
+          status=$(curl -sS -o /tmp/body.json -w '%{http_code}' \
+            "${SUPABASE_URL}/rest/v1/branches?select=id&limit=1" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}")
+
+          echo "HTTP ${status}"
+          if [ "${status}" != "200" ]; then
+            echo "::error::Keep-alive ping failed with HTTP ${status}."
+            echo "A non-200 does not count as Supabase activity — the project will pause."
+            cat /tmp/body.json
+            exit 1
+          fi
+
+          echo "Supabase reachable — pause timer reset."
