@@ -65,6 +65,7 @@ CREATE TRIGGER trg_set_id_card_order_amount
   FOR EACH ROW
   EXECUTE FUNCTION public.set_id_card_order_amount();
 
+DROP TRIGGER IF EXISTS id_card_orders_updated_at ON public.id_card_orders;
 CREATE TRIGGER id_card_orders_updated_at
   BEFORE UPDATE ON id_card_orders
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
@@ -74,14 +75,17 @@ CREATE TRIGGER id_card_orders_updated_at
 -- ============================================
 ALTER TABLE id_card_orders ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members can view own id card orders" ON id_card_orders;
 CREATE POLICY "Members can view own id card orders" ON id_card_orders
   FOR SELECT USING (member_id = auth.uid());
 
+DROP POLICY IF EXISTS "Members can place own id card orders" ON id_card_orders;
 CREATE POLICY "Members can place own id card orders" ON id_card_orders
   FOR INSERT WITH CHECK (member_id = auth.uid());
 
 -- Deliberately no member UPDATE policy: a member who could update their own row
 -- could set status = 'paid' themselves. Cancellations and address corrections
 -- go through an admin until Razorpay owns the paid transition.
+DROP POLICY IF EXISTS "Admins can manage all id card orders" ON id_card_orders;
 CREATE POLICY "Admins can manage all id card orders" ON id_card_orders
   FOR ALL USING (is_admin());
