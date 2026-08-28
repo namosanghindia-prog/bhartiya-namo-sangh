@@ -23,6 +23,32 @@ interface ContactInfo {
   youtube_url: string | null;
 }
 
+/* Bank accounts shown on the contact page for membership fees and donations.
+   Rendered in order, separated by a thick rule. */
+const BANK_ACCOUNTS: { heading: string; fields: [string, string][] }[] = [
+  {
+    heading: "Account 1 · Axis Bank",
+    fields: [
+      ["Account Name", "BHARTIYA NAMO SANGH"],
+      ["Bank", "Axis Bank Ltd."],
+      ["Branch", "Dwarka, New Delhi – 110075"],
+      ["Account Number", "92202000547190"],
+      ["IFSC Code", "UTIB0003893"],
+    ],
+  },
+  {
+    heading: "Account 2 · Bandhan Bank",
+    fields: [
+      ["Account Name", "BHARTIYA NAMO SANGH"],
+      ["Bank", "Bandhan Bank"],
+      ["Branch", "Dwarka, New Delhi"],
+      ["Account Number", "10170004386075"],
+      ["Account Category", "Current Account – TASC/INR"],
+      ["IFSC Code", "BDBL0001726"],
+    ],
+  },
+];
+
 export default function ContactPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [contactInfo, setContactInfo] = useState<ContactInfo | null>(null);
@@ -354,25 +380,33 @@ export default function ContactPage() {
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-navy/50 mb-3">
                   Bank transfer / NEFT / IMPS
                 </h3>
-                <dl className="divide-y divide-saffron-100 rounded-lg border border-saffron-200 bg-white">
-                  {[
-                    ["Account Name", "BHARTIYA NAMO SANGH"],
-                    ["Bank", "Axis Bank Ltd."],
-                    ["Branch", "Dwarka, New Delhi – 110075"],
-                    ["Account Number", "92202000547190"],
-                    ["IFSC Code", "UTIB0003893"],
-                  ].map(([label, value]) => (
-                    <div
-                      key={label}
-                      className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-2.5"
-                    >
-                      <dt className="text-sm text-navy/60">{label}</dt>
-                      <dd className="font-mono text-sm font-semibold text-navy break-all">
-                        {value}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
+                {BANK_ACCOUNTS.map((account, i) => (
+                  <div
+                    key={account.heading}
+                    className={
+                      i > 0
+                        ? "mt-7 pt-7 border-t-4 border-saffron-300"
+                        : undefined
+                    }
+                  >
+                    <p className="mb-2 text-sm font-semibold text-saffron-800">
+                      {account.heading}
+                    </p>
+                    <dl className="divide-y divide-saffron-100 rounded-lg border border-saffron-200 bg-white">
+                      {account.fields.map(([label, value]) => (
+                        <div
+                          key={label}
+                          className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-2.5"
+                        >
+                          <dt className="text-sm text-navy/60">{label}</dt>
+                          <dd className="font-mono text-sm font-semibold text-navy break-all">
+                            {value}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+                ))}
                 <p className="mt-3 text-xs text-navy/50">
                   Please mention your name and membership number in the payment
                   reference so we can match your contribution to your record.
