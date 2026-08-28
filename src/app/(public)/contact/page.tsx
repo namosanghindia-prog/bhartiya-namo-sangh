@@ -335,6 +335,89 @@ export default function ContactPage() {
           </div>
         </div>
       </section>
+
+      {/* Bank details + payment QR for membership fees and donations. */}
+      <section className="pb-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="rounded-xl border border-saffron-200 bg-saffron-50/40 p-6 sm:p-8">
+            <h2 className="font-heading text-2xl font-semibold text-navy">
+              Contribute to the Sangh
+            </h2>
+            <p className="mt-1 text-sm text-navy/60">
+              For membership fees, donations and other regular payments, use the
+              bank details below or scan the QR code.
+            </p>
+
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Bank account */}
+              <div className="md:col-span-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-navy/50 mb-3">
+                  Bank transfer / NEFT / IMPS
+                </h3>
+                <dl className="divide-y divide-saffron-100 rounded-lg border border-saffron-200 bg-white">
+                  {[
+                    ["Account Name", "BHARTIYA NAMO SANGH"],
+                    ["Bank", "Axis Bank Ltd."],
+                    ["Branch", "Dwarka, New Delhi – 110075"],
+                    ["Account Number", "92202000547190"],
+                    ["IFSC Code", "UTIB0003893"],
+                    ["Branch Code", "000460"],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-2.5"
+                    >
+                      <dt className="text-sm text-navy/60">{label}</dt>
+                      <dd className="font-mono text-sm font-semibold text-navy break-all">
+                        {value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                <p className="mt-3 text-xs text-navy/50">
+                  Please mention your name and membership number in the payment
+                  reference so we can match your contribution to your record.
+                </p>
+              </div>
+
+              {/* Payment QR */}
+              <div className="flex flex-col items-center">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-navy/50 mb-3">
+                  Scan to pay
+                </h3>
+                <div className="rounded-lg border border-saffron-200 bg-white p-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/payment-qr.png"
+                    alt="Scan this QR code to pay Bhartiya Namo Sangh"
+                    width={250}
+                    height={368}
+                    className="w-[220px] h-auto"
+                  />
+                </div>
+                <p className="mt-2 text-xs text-navy/50 text-center">
+                  Any UPI app
+                </p>
+              </div>
+            </div>
+
+            {/* Thank-you notice */}
+            <div className="mt-8 rounded-lg border border-[#138808]/30 bg-[#138808]/5 px-5 py-4">
+              <p className="font-heading text-base font-semibold text-[#0f6b1f]">
+                हृदय से धन्यवाद · Thank You
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-navy/75">
+                आपके सहयोग और विश्वास के लिए भारतीय नमो संघ आपका हृदय से आभारी है।
+                आपका योगदान संगठन के सेवा कार्यों को आगे बढ़ाता है।
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-navy/75">
+                Every contribution, however small, directly supports our work in
+                the community. Thank you for standing with Bhartiya Namo Sangh.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
     </>
   );
 }
