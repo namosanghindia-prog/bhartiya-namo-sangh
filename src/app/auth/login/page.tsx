@@ -12,7 +12,14 @@ function LoginForm() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // The proxy redirects here with ?error=unavailable when Supabase does not
+  // answer within its deadline, so the user gets an explanation instead of a
+  // silent bounce back to the login form.
+  const [error, setError] = useState<string | null>(
+    searchParams.get("error") === "unavailable"
+      ? "We could not reach the server just then. Please try signing in again."
+      : null
+  );
   const [vipMessage, setVipMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
