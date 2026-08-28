@@ -664,20 +664,20 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
                 <OrgHeader compact />
               </div>
 
-              <div className="relative z-10 px-3 pt-2 pb-[24px] flex-1 min-h-0 flex gap-2.5">
+              <div className="relative z-10 px-3 pt-1 pb-[18px] flex-1 min-h-0 flex gap-2.5">
                 {/* Terms + barcode */}
-                <div className="w-[56%] min-w-0 flex flex-col">
+                <div className="w-[62%] min-w-0 flex flex-col">
                   <div className="mb-[5px]">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#0f6b1f] text-white px-2 py-[2.5px] text-[7px] font-bold leading-none">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#0f6b1f] text-white px-2 py-[3px] text-[8px] font-bold leading-none">
                       <span className="h-[3px] w-[3px] rounded-full bg-white/90" aria-hidden="true" />
                       निर्देश / शर्तें
                       <span className="h-[3px] w-[3px] rounded-full bg-white/90" aria-hidden="true" />
                     </span>
                   </div>
-                  <ul className="space-y-[3px] text-[7.5px] leading-[1.35] text-[#0a1929]/85">
+                  <ul className="space-y-[3px] text-[9px] leading-[1.3] text-[#0a1929]/85">
                     {TERMS.map((t) => (
                       <li key={t} className="flex items-start gap-1">
-                        <IconCheck className="h-[8px] w-[8px] flex-shrink-0 mt-[1px] text-[#138808]" />
+                        <IconCheck className="h-[9.5px] w-[9.5px] flex-shrink-0 mt-[1.5px] text-[#138808]" />
                         <span>{t}</span>
                       </li>
                     ))}
@@ -685,7 +685,7 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
                   <div className="mt-auto pt-1 flex flex-col items-center">
                     <canvas
                       ref={barcodeCanvasRef}
-                      style={{ height: 34, width: "auto", maxWidth: "100%" }}
+                      style={{ height: 22, width: "auto", maxWidth: "100%" }}
                       aria-label={`Barcode ${barcodeText}`}
                     />
                     <span className="mt-[2px] font-mono text-[6.5px] leading-none tracking-[0.25em] text-[#0a1929]/80">
@@ -704,7 +704,7 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
                     <img
                       src="/nm.png"
                       alt=""
-                      className="h-[52px] w-[52px] object-contain"
+                      className="h-[46px] w-[46px] object-contain"
                     />
                   </div>
                   <div className="rounded-md border border-saffron-200 bg-saffron-50 px-2 py-1.5">
