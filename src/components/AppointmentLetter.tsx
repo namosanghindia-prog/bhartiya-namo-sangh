@@ -421,8 +421,20 @@ export default function AppointmentLetter({
             <div className="mt-[10px] h-[2px] w-full bg-gradient-to-r from-[#FF9933] via-[#d7dde4] to-[#138808]" />
 
             {/* 4 — Date / serial on the left, member photo on the right */}
-            <div className="mt-[12px] flex items-start justify-between gap-4">
-              <div className="text-[12px] leading-[1.7]">
+            <div className="relative mt-[12px] flex items-start justify-between gap-4">
+              {/* Decorative portrait anchoring the left column. It hangs below the
+                  date/serial lines into the empty margin left of the centred
+                  heading and salutation, at low opacity so it never competes with
+                  them for attention. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/letter-portrait-silhouette.png"
+                alt=""
+                aria-hidden="true"
+                className="pointer-events-none absolute left-0 top-[52px] w-[168px] object-contain opacity-[0.3]"
+              />
+
+              <div className="relative text-[12px] leading-[1.7]">
                 <div>
                   <span className="font-semibold">दिनांक:</span>{" "}
                   <span className="font-mono">{letterDate}</span>
