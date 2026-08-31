@@ -6,6 +6,7 @@ import JsBarcode from "jsbarcode";
 import { toPng } from "html-to-image";
 import { createClient } from "@/lib/supabase/client";
 import { formatMembershipId, barcodeValue, verificationUrl as buildVerificationUrl } from "@/lib/membership";
+import OrgHeader from "@/components/OrgHeader";
 
 export { formatMembershipId, barcodeValue, getStateCode } from "@/lib/membership";
 
@@ -284,44 +285,6 @@ function LanyardHole() {
       className="absolute left-1/2 top-[5px] -translate-x-1/2 h-[6px] w-7 rounded-full bg-[#e9eef3] border border-[#c9d3dd]"
       aria-hidden="true"
     />
-  );
-}
-
-function OrgHeader({ compact = false }: { compact?: boolean }) {
-  return (
-    <div className={`flex items-center gap-2 px-3 ${compact ? "pt-[14px]" : "pt-4"}`}>
-      <div
-        className={`flex-shrink-0 rounded-full bg-white border-[1.5px] border-saffron-500 flex items-center justify-center overflow-hidden ${
-          compact ? "h-7 w-7" : "h-12 w-12"
-        }`}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="BNMS" className={compact ? "h-6 w-6" : "h-[42px] w-[42px]"} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-1.5">
-          <span
-            className={`font-heading font-extrabold leading-none text-[#0a1929] whitespace-nowrap ${
-              compact ? "text-[12px]" : "text-[15px]"
-            }`}
-          >
-            भारतीय नमो संघ
-          </span>
-          <span className={`font-semibold text-[#0a1929]/70 leading-none ${compact ? "text-[6.5px]" : "text-[7.5px]"}`}>
-            (BNMS)
-          </span>
-        </div>
-        <div className="mt-[3px]">
-          <span
-            className={`inline-block max-w-full rounded-full bg-saffron-600 text-white font-semibold leading-none whitespace-nowrap ${
-              compact ? "px-1.5 py-[2px] text-[6px]" : "px-2 py-[2.5px] text-[6.5px]"
-            }`}
-          >
-            राष्ट्र सेवा में समर्पित सामाजिक महासंघ
-          </span>
-        </div>
-      </div>
-    </div>
   );
 }
 
