@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import MembershipCard from "@/components/MembershipCard";
+import AppointmentLetter from "@/components/AppointmentLetter";
 import type { Branch } from "@/lib/supabase/types";
 
 interface Member {
@@ -43,6 +44,7 @@ export default function AdminMembersPage() {
   const [status, setStatus] = useState<"all" | "active" | "inactive" | "pending" | "suspended">("all");
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [showIdCard, setShowIdCard] = useState(false);
+  const [showAppointmentLetter, setShowAppointmentLetter] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [saving, setSaving] = useState(false);
@@ -106,6 +108,16 @@ export default function AdminMembersPage() {
 
   function closeIdCardModal() {
     setShowIdCard(false);
+    setSelectedMember(null);
+  }
+
+  function handleViewAppointmentLetter(member: Member) {
+    setSelectedMember(member);
+    setShowAppointmentLetter(true);
+  }
+
+  function closeAppointmentLetterModal() {
+    setShowAppointmentLetter(false);
     setSelectedMember(null);
   }
 
@@ -328,12 +340,20 @@ export default function AdminMembersPage() {
                     </td>
                     <td className="px-4 py-3 text-right space-x-2">
                       {m.status === "active" && m.membership_number && (
-                        <button
-                          onClick={() => handleViewIdCard(m)}
-                          className="text-xs font-medium text-saffron-700 hover:text-saffron-800"
-                        >
-                          ID Card
-                        </button>
+                        <>
+                          <button
+                            onClick={() => handleViewIdCard(m)}
+                            className="text-xs font-medium text-saffron-700 hover:text-saffron-800"
+                          >
+                            ID Card
+                          </button>
+                          <button
+                            onClick={() => handleViewAppointmentLetter(m)}
+                            className="text-xs font-medium text-saffron-700 hover:text-saffron-800"
+                          >
+                            Appointment Letter
+                          </button>
+                        </>
                       )}
                       <button
                         onClick={() => handleEdit(m)}
@@ -564,6 +584,48 @@ export default function AdminMembersPage() {
           </div>
         </>
       )}
+
+      {/* Appointment Letter Modal */}
+      {showAppointmentLetter &&
+        selectedMember &&
+        selectedMember.membership_number &&
+        selectedMember.membership_issued_at && (
+          <>
+            <div className="fixed inset-0 bg-black/50 z-50" onClick={closeAppointmentLetterModal} />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-xl shadow-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-heading text-lg font-semibold text-navy">
+                    Member Appointment Letter
+                  </h2>
+                  <button
+                    onClick={closeAppointmentLetterModal}
+                    className="text-navy/50 hover:text-navy"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="flex justify-center">
+                  <AppointmentLetter
+                    member={{
+                      id: selectedMember.id,
+                      first_name: selectedMember.first_name,
+                      last_name: selectedMember.last_name,
+                      avatar_url: selectedMember.avatar_url,
+                      membership_number: selectedMember.membership_number,
+                      membership_issued_at: selectedMember.membership_issued_at,
+                      designation: selectedMember.designation,
+                      branch: selectedMember.branch?.[0] || null,
+                    }}
+                    showDownload={true}
+                  />
+                </div>
+              </div>
+            </div>
+          </>
+        )}
     </div>
   );
 }
