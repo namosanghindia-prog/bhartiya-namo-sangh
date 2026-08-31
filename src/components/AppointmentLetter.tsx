@@ -177,7 +177,13 @@ function Flourish({ flip = false }: { flip?: boolean }) {
   );
 }
 
-/** Signature image that degrades to a labelled grey box when the file is absent. */
+/**
+ * Signature image that degrades to blank signing space when the file is absent.
+ *
+ * The letter is a member-facing document, so a missing scan must not surface a
+ * developer placeholder on it. Reserving the same height instead leaves the
+ * signature rule intact and the letter ready to be signed by hand.
+ */
 function SignatureImage({ src, alt }: { src: string; alt: string }) {
   const imgRef = useRef<HTMLImageElement>(null);
   const [failed, setFailed] = useState(false);
@@ -190,13 +196,7 @@ function SignatureImage({ src, alt }: { src: string; alt: string }) {
   }, []);
 
   if (failed) {
-    return (
-      <div className="flex h-[64px] w-[190px] items-center justify-center rounded-md border border-dashed border-[#c4cbd3] bg-[#eef1f4]">
-        <span className="px-2 text-center text-[9px] font-medium leading-tight text-[#0a1929]/40">
-          {src.replace(/^\//, "")}
-        </span>
-      </div>
-    );
+    return <div className="h-[64px] w-[190px]" aria-hidden="true" />;
   }
 
   return (
