@@ -39,6 +39,7 @@ interface AppointmentLetterProps {
 interface OrgContact {
   phone_primary: string | null;
   phone_secondary: string | null;
+  phone_tertiary: string | null;
   primary_email: string | null;
   website_url: string | null;
 }
@@ -68,13 +69,6 @@ const SIGNATORIES = [
     image: "/signature-president.png",
     name: "डॉ. मनोज कुमार (मन्नू तोमर)",
     role: "राष्ट्रीय अध्यक्ष",
-    org: "भारतीय नमो संघ (BNMS)",
-    note: "पूर्व राष्ट्रीय प्रवक्ता – वर्ल्ड वेदांत इंस्टीट्यूट",
-  },
-  {
-    image: "/signature-secretary.png",
-    name: "बिंदेश शर्मा",
-    role: "राष्ट्रीय कार्यकारी राष्ट्रीय प्रभारी",
     org: "भारतीय नमो संघ (BNMS)",
     note: "पूर्व राष्ट्रीय प्रवक्ता – वर्ल्ड वेदांत इंस्टीट्यूट",
   },
@@ -297,7 +291,9 @@ export default function AppointmentLetter({
       const supabase = createClient();
       const { data } = await supabase
         .from("organization_settings")
-        .select("phone_primary, phone_secondary, primary_email, website_url")
+        // Whole row: phone_tertiary arrives with migration 010, and naming it in an
+        // explicit select would fail the entire query until that has been applied.
+        .select("*")
         .eq("id", 1)
         .single();
       if (!cancelled && data) setOrg(data as OrgContact);
@@ -364,7 +360,9 @@ export default function AppointmentLetter({
     }
   }, [member.membership_number, serial]);
 
-  const phones = [org?.phone_primary, org?.phone_secondary].filter(Boolean) as string[];
+  const phones = [org?.phone_primary, org?.phone_secondary, org?.phone_tertiary].filter(
+    Boolean
+  ) as string[];
   const site = websiteLabel(org?.website_url);
 
   return (
@@ -518,7 +516,7 @@ export default function AppointmentLetter({
               </ul>
             </div>
 
-            {/* 8 — Signatures, with the verification QR between them */}
+            {/* 8 — Signature on the left, verification QR opposite it */}
             <div className="mt-auto mb-[14px] flex items-end justify-between gap-3 pt-[22px]">
               <SignatureBlock signatory={SIGNATORIES[0]} align="left" />
 
@@ -534,8 +532,6 @@ export default function AppointmentLetter({
                   स्कैन कर सत्यापित करें
                 </span>
               </div>
-
-              <SignatureBlock signatory={SIGNATORIES[1]} align="right" />
             </div>
           </div>
 

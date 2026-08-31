@@ -17,6 +17,7 @@ interface Office {
 interface ContactSettings {
   phone_primary: string | null;
   phone_secondary: string | null;
+  phone_tertiary: string | null;
   whatsapp_number: string | null;
   offices: Office[];
   founder_name: string | null;
@@ -40,6 +41,7 @@ export default function AdminSettingsPage() {
   const [contactSettings, setContactSettings] = useState<ContactSettings>({
     phone_primary: null,
     phone_secondary: null,
+    phone_tertiary: null,
     whatsapp_number: null,
     offices: [],
     founder_name: null,
@@ -57,7 +59,9 @@ export default function AdminSettingsPage() {
 
       const { data, error } = await supabase
         .from("organization_settings")
-        .select("org_name, founded_year, primary_email, phone_primary, phone_secondary, whatsapp_number, offices, founder_name, founder_title, website_url, facebook_url, instagram_url, youtube_url")
+        // Whole row, so a failed read cannot leave the form blank and let a save
+        // write nulls over live contact details. See migration 010.
+        .select("*")
         .eq("id", 1)
         .single();
 
@@ -72,6 +76,7 @@ export default function AdminSettingsPage() {
         setContactSettings({
           phone_primary: data.phone_primary,
           phone_secondary: data.phone_secondary,
+          phone_tertiary: data.phone_tertiary,
           whatsapp_number: data.whatsapp_number,
           offices: Array.isArray(data.offices) ? (data.offices as Office[]) : [],
           founder_name: data.founder_name,
@@ -125,6 +130,7 @@ export default function AdminSettingsPage() {
       .update({
         phone_primary: contactSettings.phone_primary?.trim() || null,
         phone_secondary: contactSettings.phone_secondary?.trim() || null,
+        phone_tertiary: contactSettings.phone_tertiary?.trim() || null,
         whatsapp_number: contactSettings.whatsapp_number?.trim() || null,
         offices: contactSettings.offices
           .map((o) => ({ label: o.label.trim(), address: o.address.trim() }))
@@ -311,6 +317,20 @@ export default function AdminSettingsPage() {
                     value={contactSettings.phone_secondary || ""}
                     onChange={(e) =>
                       setContactSettings({ ...contactSettings, phone_secondary: e.target.value })
+                    }
+                    placeholder="+91 98765 43210"
+                    className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-navy/70 mb-1">
+                    Third Phone (optional)
+                  </label>
+                  <input
+                    type="tel"
+                    value={contactSettings.phone_tertiary || ""}
+                    onChange={(e) =>
+                      setContactSettings({ ...contactSettings, phone_tertiary: e.target.value })
                     }
                     placeholder="+91 98765 43210"
                     className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"

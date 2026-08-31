@@ -13,6 +13,7 @@ interface ContactInfo {
   primary_email: string | null;
   phone_primary: string | null;
   phone_secondary: string | null;
+  phone_tertiary: string | null;
   whatsapp_number: string | null;
   offices: Office[] | null;
   founder_name: string | null;
@@ -67,7 +68,9 @@ export default function ContactPage() {
           .order("name"),
         supabase
           .from("organization_settings")
-          .select("primary_email, phone_primary, phone_secondary, whatsapp_number, offices, founder_name, founder_title, website_url, facebook_url, instagram_url, youtube_url")
+          // See AppointmentLetter: selecting phone_tertiary by name breaks this query
+          // wherever migration 010 has not run yet.
+          .select("*")
           .eq("id", 1)
           .single(),
       ]);
@@ -230,6 +233,17 @@ export default function ContactPage() {
                       className="hover:text-saffron-700 transition-colors"
                     >
                       {contactInfo.phone_secondary}
+                    </a>
+                  </li>
+                )}
+                {contactInfo?.phone_tertiary && (
+                  <li className="flex items-start gap-2">
+                    <span className="flex-shrink-0">📱</span>
+                    <a
+                      href={`tel:${contactInfo.phone_tertiary.replace(/\s/g, "")}`}
+                      className="hover:text-saffron-700 transition-colors"
+                    >
+                      {contactInfo.phone_tertiary}
                     </a>
                   </li>
                 )}
