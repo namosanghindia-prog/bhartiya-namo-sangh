@@ -32,8 +32,8 @@ export default function OrgHeader({ compact = false, variant }: OrgHeaderProps) 
 
   const logo = isLetter ? "h-[64px] w-[64px]" : isCompact ? "h-6 w-6" : "h-[42px] w-[42px]";
 
-  const title = isLetter ? "text-[34px]" : isCompact ? "text-[12px]" : "text-[15px]";
-  const abbr = isLetter ? "text-[15px]" : isCompact ? "text-[6.5px]" : "text-[7.5px]";
+  const title = isLetter ? "text-[51px]" : isCompact ? "text-[12px]" : "text-[15px]";
+  const abbr = isLetter ? "text-[22px]" : isCompact ? "text-[6.5px]" : "text-[7.5px]";
   const pill = isLetter
     ? "px-4 py-[5px] text-[14px]"
     : isCompact
