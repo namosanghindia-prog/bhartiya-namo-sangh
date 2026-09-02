@@ -396,22 +396,23 @@ export default function AppointmentLetter({
             </p>
 
             {/* 2 — Letterhead */}
-            <div className="mt-[10px] flex items-center gap-4">
-              <div className="flex-1 min-w-0">
-                <OrgHeader variant="letter" />
-              </div>
-              {/* Mirrored so the portrait faces back into the letterhead rather
-                  than off the page edge. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/letter-portrait-silhouette.png"
-                alt=""
-                aria-hidden="true"
-                className="h-[84px] flex-shrink-0 object-contain"
-                style={{ transform: "scaleX(-1)" }}
+            <div className="mt-[10px]">
+              <OrgHeader
+                variant="letter"
+                rightSlot={
+                  // Mirrored so the portrait faces back into the letterhead
+                  // rather than off the page edge. Full band height, so it
+                  // meets the header's top and bottom edges like the emblem.
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src="/letter-portrait-silhouette.png"
+                    alt=""
+                    aria-hidden="true"
+                    className="h-full w-auto object-contain"
+                    style={{ transform: "scaleX(-1)" }}
+                  />
+                }
               />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/nm.png" alt="" className="h-[70px] w-[70px] flex-shrink-0 object-contain" />
             </div>
 
             {/* 3 — Registration details */}
