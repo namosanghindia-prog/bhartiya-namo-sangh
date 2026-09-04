@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { uploadAvatar, removeSupersededAvatars } from "@/lib/avatar";
 import type { Member, Branch } from "@/lib/supabase/types";
 
 interface ProfileChangeRequest {
@@ -171,35 +172,36 @@ export default function ProfilePage() {
     setError(null);
 
     const supabase = createClient();
-    const fileExt = file.name.split(".").pop();
-    const filePath = `${member.id}/avatar.${fileExt}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("avatars")
-      .upload(filePath, file, { upsert: true });
+    const { publicUrl, error: uploadError } = await uploadAvatar(
+      supabase,
+      member.id,
+      file,
+      file.type
+    );
 
-    if (uploadError) {
+    if (uploadError || !publicUrl) {
       setUploading(false);
-      setError(uploadError.message);
+      setError(uploadError || "Upload failed");
       return;
     }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from("avatars")
-      .getPublicUrl(filePath);
 
     const { error: updateError } = await supabase
       .from("members")
       .update({ avatar_url: publicUrl })
       .eq("id", member.id);
 
-    setUploading(false);
-
     if (updateError) {
+      setUploading(false);
       setError(updateError.message);
       return;
     }
 
+    // Only once the new photo is the one on record — a failure here leaves
+    // tidy-up undone, never a member without an avatar.
+    await removeSupersededAvatars(supabase, member.id, publicUrl);
+
+    setUploading(false);
     setMember({ ...member, avatar_url: publicUrl });
   }
 

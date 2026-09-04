@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { uploadAvatar } from "@/lib/avatar";
 
 function LoginForm() {
   const router = useRouter();
@@ -74,22 +75,17 @@ function LoginForm() {
           const byteArray = new Uint8Array(byteNumbers);
           const blob = new Blob([byteArray], { type: pendingAvatarType });
 
-          const ext = pendingAvatarType.split("/")[1] === "jpeg" ? "jpg" : pendingAvatarType.split("/")[1];
-          const filePath = `${signInData.user.id}/avatar.${ext}`;
+          console.log("[login] Uploading pending avatar to storage...");
+          const { publicUrl, error: uploadError } = await uploadAvatar(
+            supabase,
+            signInData.user.id,
+            blob,
+            pendingAvatarType
+          );
 
-          console.log("[login] Uploading avatar to storage:", filePath);
-          const { error: uploadError } = await supabase.storage
-            .from("avatars")
-            .upload(filePath, blob, { upsert: true });
-
-          if (uploadError) {
+          if (uploadError || !publicUrl) {
             console.error("[login] Avatar upload failed:", uploadError);
           } else {
-            console.log("[login] Avatar uploaded successfully, getting public URL...");
-            const { data: { publicUrl } } = supabase.storage
-              .from("avatars")
-              .getPublicUrl(filePath);
-
             console.log("[login] Public URL:", publicUrl);
             const { error: updateError } = await supabase
               .from("members")
