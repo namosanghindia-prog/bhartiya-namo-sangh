@@ -90,6 +90,28 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* GALLERY */}
+      <section className="bg-saffron-50 border-y border-saffron-100">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <div className="text-3xl mb-3" aria-hidden="true">
+            📷
+          </div>
+          <h2 className="font-heading text-3xl font-semibold text-navy">
+            Moments From Our Work
+          </h2>
+          <p className="mt-3 text-navy/70 max-w-xl mx-auto">
+            Photographs from our events, drives and community programs across
+            India.
+          </p>
+          <Link
+            href="/gallery"
+            className="mt-8 inline-block rounded-md bg-saffron-700 px-6 py-3 text-sm font-semibold text-white hover:bg-saffron-800 transition-colors"
+          >
+            View Photo Gallery
+          </Link>
+        </div>
+      </section>
+
       {/* DONATION CTA */}
       <section className="bg-navy text-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 text-center">
