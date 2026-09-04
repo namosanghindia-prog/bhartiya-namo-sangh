@@ -685,7 +685,7 @@ export default function AppointmentLetter({
             </p>
 
             {/* 2 — Letterhead, with the portrait artwork in its top-right corner */}
-            <div className="mt-[8px]">
+            <div className="-mx-[24px] mt-[6px]">
               <OrgHeader
                 variant="letter"
                 rightSlot={
@@ -697,7 +697,7 @@ export default function AppointmentLetter({
                       src="/letter-portrait-silhouette.png"
                       alt=""
                       aria-hidden="true"
-                      className="h-[72px] w-auto object-contain"
+                      className="h-[134px] w-auto object-contain"
                       style={{ transform: "scaleX(-1)" }}
                     />
                     <span className="mt-[3px] whitespace-nowrap text-[9px] font-extrabold leading-none text-saffron-700">
@@ -709,7 +709,7 @@ export default function AppointmentLetter({
             </div>
 
             {/* 3 — Decorative values row */}
-            <div className="mt-[7px] flex items-center justify-center gap-[10px]">
+            <div className="mt-[5px] flex items-center justify-center gap-[10px]">
               {VALUE_CHIPS.map(({ Icon, label }) => (
                 <span
                   key={label}
@@ -724,7 +724,7 @@ export default function AppointmentLetter({
             </div>
 
             {/* 4 — Registration details */}
-            <div className="mt-[8px] rounded-lg border border-[#e3e8ee] bg-[#f7f9fb] px-[10px] py-[7px]">
+            <div className="mt-[6px] rounded-lg border border-[#e3e8ee] bg-[#f7f9fb] px-[10px] py-[7px]">
               <div className="grid grid-cols-5 gap-x-[6px]">
                 {REGISTRATIONS.map(({ Icon, label, value }) => (
                   <div key={label} className="flex flex-col items-center text-center">
@@ -742,10 +742,10 @@ export default function AppointmentLetter({
               </div>
             </div>
 
-            <div className="mt-[9px] h-[2px] w-full bg-gradient-to-r from-[#FF9933] via-[#d7dde4] to-[#138808]" />
+            <div className="mt-[7px] h-[2px] w-full bg-gradient-to-r from-[#FF9933] via-[#d7dde4] to-[#138808]" />
 
             {/* 5 — Date / serial on the left, member photo on the right */}
-            <div className="mt-[9px] flex items-start justify-between gap-4">
+            <div className="mt-[8px] flex items-start justify-between gap-4">
               <div className="text-[12px] leading-[1.7]">
                 <div>
                   <span className="font-semibold">दिनांक:</span>{" "}
@@ -799,7 +799,7 @@ export default function AppointmentLetter({
             </div>
 
             {/* 6 — Heading banner */}
-            <div className="mt-[6px] flex justify-center">
+            <div className="mt-[4px] flex justify-center">
               <div
                 className="inline-flex items-center gap-[14px] rounded-xl px-[28px] py-[7px]"
                 style={{ backgroundColor: BANNER_GREEN, border: `2px solid ${GOLD}` }}
@@ -821,7 +821,7 @@ export default function AppointmentLetter({
             </div>
 
             {/* 7 — Body */}
-            <div className="mt-[11px] text-center">
+            <div className="mt-[9px] text-center">
               <p className="text-[13.5px] leading-[1.6]">
                 भारतीय नमो संघ परिवार, <span className="font-semibold">{stateLabel}</span> की कार्यकारिणी में
               </p>
@@ -845,11 +845,11 @@ export default function AppointmentLetter({
               <p className="mt-[8px] text-justify text-[12.5px] leading-[1.55] text-[#0a1929]/85">
                 {BODY_PARAGRAPH_2}
               </p>
-              <p className="mt-[9px] text-[14px] font-bold text-[#138808]">{BLESSING}</p>
+              <p className="mt-[8px] text-[14px] font-bold text-[#138808]">{BLESSING}</p>
             </div>
 
             {/* 8 — Objectives, five across */}
-            <div className="mt-[12px] rounded-lg border border-saffron-200 bg-saffron-50/70 px-[12px] pb-[11px] pt-[9px]">
+            <div className="mt-[10px] rounded-lg border border-saffron-200 bg-saffron-50/70 px-[12px] pb-[11px] pt-[9px]">
               <h2 className="text-center font-heading text-[15px] font-bold text-saffron-800">
                 संगठन के उद्देश्य
               </h2>
@@ -869,7 +869,7 @@ export default function AppointmentLetter({
             </div>
 
             {/* 9 — Closing strapline */}
-            <p className="mt-[10px] text-center text-[12.5px] font-bold tracking-wide text-saffron-800">
+            <p className="mt-[8px] text-center text-[12.5px] font-bold tracking-wide text-saffron-800">
               {CLOSING_TAGLINE}
             </p>
 

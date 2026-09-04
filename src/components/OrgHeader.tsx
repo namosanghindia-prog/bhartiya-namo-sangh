@@ -12,9 +12,9 @@
 export type OrgHeaderVariant = "card" | "compact" | "letter";
 
 /** Height of the `letter` letterhead band, in design-canvas px.
- *  The emblem and the right-hand artwork are both sized to exactly this, so
- *  they meet the band's top and bottom edges. */
-export const LETTER_HEADER_H = 118;
+ *  Doubles as the emblem's diameter and as the wordmark's side reservation, so
+ *  raising it enlarges the emblem and narrows the space left for the title. */
+export const LETTER_HEADER_H = 155;
 
 interface OrgHeaderProps {
   /** Back-compat with the ID card's original boolean API. */
@@ -73,10 +73,10 @@ export default function OrgHeader({
           }}
         >
           <div className="flex items-baseline justify-center gap-2.5">
-            <span className="font-heading text-[52px] font-extrabold leading-none text-[#0a1929] whitespace-nowrap">
+            <span className="font-heading text-[48px] font-extrabold leading-none text-[#0a1929] whitespace-nowrap">
               भारतीय नमो संघ
             </span>
-            <span className="text-[22px] font-semibold leading-none text-[#0a1929]/70">
+            <span className="text-[20px] font-semibold leading-none text-[#0a1929]/70">
               (BNMS)
             </span>
           </div>
