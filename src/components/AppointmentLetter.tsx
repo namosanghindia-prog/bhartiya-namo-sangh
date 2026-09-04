@@ -686,7 +686,11 @@ export default function AppointmentLetter({
               <OrgHeader
                 variant="letter"
                 rightSlot={
-                  <div className="flex h-full flex-col items-center justify-start pt-[4px]">
+                  // Taller than the band on purpose: the band height doubles as
+                  // the emblem's diameter, so growing the portrait inside it
+                  // would enlarge the emblem too. It overhangs into the gutter
+                  // beside the values row instead, which is empty this far right.
+                  <div className="flex h-full flex-col items-center justify-start">
                     {/* Mirrored so the portrait faces back into the letterhead
                         rather than off the page edge. */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -694,10 +698,10 @@ export default function AppointmentLetter({
                       src="/letter-portrait-silhouette.png"
                       alt=""
                       aria-hidden="true"
-                      className="h-[134px] w-auto object-contain"
+                      className="h-[158px] w-auto object-contain"
                       style={{ transform: "scaleX(-1)" }}
                     />
-                    <span className="mt-[3px] whitespace-nowrap text-[9px] font-extrabold leading-none text-saffron-700">
+                    <span className="mt-[2px] whitespace-nowrap text-[9px] font-extrabold leading-none text-saffron-700">
                       {PORTRAIT_CAPTION}
                     </span>
                   </div>
