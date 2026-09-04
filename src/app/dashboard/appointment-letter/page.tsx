@@ -13,6 +13,7 @@ interface MemberWithBranch {
   membership_number: number | null;
   membership_issued_at: string | null;
   designation: string | null;
+  gender: string | null;
   branch: { name: string; state: string | null } | null;
 }
 
@@ -42,7 +43,7 @@ export default function AppointmentLetterPage() {
         const { data, error } = await supabase
           .from("members")
           .select(
-            "id, first_name, last_name, avatar_url, status, membership_number, membership_issued_at, designation, branch:branches(name, state)"
+            "id, first_name, last_name, avatar_url, status, membership_number, membership_issued_at, designation, gender, branch:branches(name, state)"
           )
           .eq("id", user.id)
           .single();
@@ -99,6 +100,7 @@ export default function AppointmentLetterPage() {
                 membership_number: member.membership_number!,
                 membership_issued_at: member.membership_issued_at!,
                 designation: member.designation,
+                gender: member.gender,
                 branch: member.branch,
               }}
               showDownload={true}

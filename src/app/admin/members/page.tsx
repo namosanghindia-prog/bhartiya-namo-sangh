@@ -16,6 +16,7 @@ interface Member {
   status: string;
   role: string;
   designation: string | null;
+  gender: string | null;
   address: string | null;
   city: string | null;
   state: string | null;
@@ -59,7 +60,7 @@ export default function AdminMembersPage() {
         .from("members")
         .select(`
           id, first_name, last_name, email, phone, avatar_url, status, role,
-          designation, address, city, state, branch_id,
+          designation, gender, address, city, state, branch_id,
           membership_type, membership_number, membership_issued_at,
           membership_expires_at, created_at,
           branch:branches(name, state)
@@ -617,6 +618,7 @@ export default function AdminMembersPage() {
                       membership_number: selectedMember.membership_number,
                       membership_issued_at: selectedMember.membership_issued_at,
                       designation: selectedMember.designation,
+                      gender: selectedMember.gender,
                       branch: selectedMember.branch?.[0] || null,
                     }}
                     showDownload={true}
