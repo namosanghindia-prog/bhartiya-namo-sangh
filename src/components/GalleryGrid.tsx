@@ -70,79 +70,95 @@ export default function GalleryGrid({ images }: { images: GalleryImage[] }) {
       </div>
 
       {current && (
+        /* Column layout, not a centred block: the photo takes the space that
+           is left over so the caption below it always keeps its own row. A
+           centred figure lets a tall photo plus a long caption overflow the
+           viewport, which on a phone pushes the caption off screen. */
         <div
-          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[100] bg-black/90 flex flex-col"
           onClick={close}
           role="dialog"
           aria-modal="true"
           aria-label={current.caption || "Gallery photo"}
         >
-          <button
-            type="button"
-            onClick={close}
-            className="absolute top-4 right-4 text-white/70 hover:text-white"
-            aria-label="Close"
-          >
-            <svg
-              className="h-8 w-8"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-
-          {openIndex !== null && openIndex > 0 && (
+          <div className="shrink-0 flex justify-end p-3">
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                step(-1);
-              }}
-              className="absolute left-2 sm:left-6 text-white/70 hover:text-white text-4xl px-3 py-2"
-              aria-label="Previous photo"
+              onClick={close}
+              className="p-2 text-white/70 hover:text-white"
+              aria-label="Close"
             >
-              ‹
+              <svg
+                className="h-7 w-7"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
             </button>
-          )}
+          </div>
 
-          {openIndex !== null && openIndex < images.length - 1 && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                step(1);
-              }}
-              className="absolute right-2 sm:right-6 text-white/70 hover:text-white text-4xl px-3 py-2"
-              aria-label="Next photo"
-            >
-              ›
-            </button>
-          )}
+          {/* min-h-0 lets this row shrink below the image's natural height
+              instead of pushing the caption out of the flex container. */}
+          <div className="relative flex-1 min-h-0 flex items-center justify-center px-2 sm:px-16">
+            {openIndex !== null && openIndex > 0 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  step(-1);
+                }}
+                className="absolute left-1 sm:left-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-3xl leading-none text-white/80 hover:bg-black/70 hover:text-white"
+                aria-label="Previous photo"
+              >
+                ‹
+              </button>
+            )}
 
-          <figure
-            className="max-w-5xl w-full"
-            onClick={(e) => e.stopPropagation()}
-          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={current.image_url}
               alt={current.caption || ""}
-              className="w-full max-h-[80vh] object-contain"
+              onClick={(e) => e.stopPropagation()}
+              className="max-h-full max-w-full object-contain"
             />
-            <figcaption className="mt-3 text-center text-sm text-white/80">
-              {current.caption}
-              <span className="block mt-1 text-xs text-white/50">
-                {(openIndex ?? 0) + 1} of {images.length}
-              </span>
-            </figcaption>
-          </figure>
+
+            {openIndex !== null && openIndex < images.length - 1 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  step(1);
+                }}
+                className="absolute right-1 sm:right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-3xl leading-none text-white/80 hover:bg-black/70 hover:text-white"
+                aria-label="Next photo"
+              >
+                ›
+              </button>
+            )}
+          </div>
+
+          {/* Capped and scrollable so a long caption cannot crowd out the
+              photo on a short screen. */}
+          <div
+            className="shrink-0 max-h-[30vh] overflow-y-auto px-4 py-4 text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {current.caption && (
+              <p className="mx-auto max-w-3xl text-sm sm:text-base text-white/90">
+                {current.caption}
+              </p>
+            )}
+            <p className="mt-1 text-xs text-white/50">
+              {(openIndex ?? 0) + 1} of {images.length}
+            </p>
+          </div>
         </div>
       )}
     </>
