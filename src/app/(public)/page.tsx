@@ -1,5 +1,6 @@
 import Link from "next/link";
 import HeroSlider from "@/components/layout/HeroSlider";
+import HomeGalleryStrip from "@/components/HomeGalleryStrip";
 
 const STATS = [
   { label: "Members", value: "10,000+" },
@@ -35,7 +36,13 @@ const PILLARS = [
   },
 ];
 
-export default function HomePage() {
+// The gallery strip below reads live data, so rebuild the page periodically
+// rather than serving the build-time snapshot forever. Five minutes keeps the
+// homepage statically served while newly uploaded photos still show up
+// promptly.
+export const revalidate = 300;
+
+export default async function HomePage() {
   return (
     <>
       {/* HERO SLIDER — editable via /admin/homepage-slider */}
@@ -103,6 +110,8 @@ export default function HomePage() {
             Photographs from our events, drives and community programs across
             India.
           </p>
+          <HomeGalleryStrip />
+
           <Link
             href="/gallery"
             className="mt-8 inline-block rounded-md bg-saffron-700 px-6 py-3 text-sm font-semibold text-white hover:bg-saffron-800 transition-colors"
