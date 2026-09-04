@@ -4,6 +4,28 @@ import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { PublicMember } from "@/lib/supabase/types";
 
+// Office-bearer seniority. Titles are matched case-insensitively and ignoring
+// stray whitespace, since designations are free text typed by an admin.
+// Anything unlisted sorts after all of these, alphabetically.
+const DESIGNATION_RANK: Record<string, number> = {
+  "president": 1,
+  "vice president": 2,
+  "general secretary": 3,
+  "secretary": 4,
+  "treasurer": 5,
+  "joint secretary": 6,
+  "spokesperson": 7,
+  "it head": 8,
+};
+
+function seniority(designation: string | null): number {
+  if (!designation) return Number.MAX_SAFE_INTEGER;
+  return (
+    DESIGNATION_RANK[designation.trim().toLowerCase()] ??
+    Number.MAX_SAFE_INTEGER
+  );
+}
+
 export default function MembersPage() {
   const [members, setMembers] = useState<PublicMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -13,6 +35,10 @@ export default function MembersPage() {
   useEffect(() => {
     async function fetchMembers() {
       const supabase = createClient();
+      // Office bearers lead the list, most senior first, so the President
+      // heads the page; everyone else follows alphabetically. The
+      // public_members view does not expose membership_number, so seniority
+      // comes from the designation rather than the member number.
       const { data, error } = await supabase
         .from("public_members")
         .select("*")
@@ -37,16 +63,26 @@ export default function MembersPage() {
   }, [members]);
 
   const filtered = useMemo(() => {
-    return members.filter((m) => {
-      const fullName = `${m.first_name} ${m.last_name}`.toLowerCase();
-      const matchesQuery =
-        query.trim() === "" ||
-        fullName.includes(query.toLowerCase()) ||
-        m.designation?.toLowerCase().includes(query.toLowerCase());
-      const matchesBranch =
-        branchFilter === "all" || m.branch_name === branchFilter;
-      return matchesQuery && matchesBranch;
-    });
+    return members
+      .filter((m) => {
+        const fullName = `${m.first_name} ${m.last_name}`.toLowerCase();
+        const matchesQuery =
+          query.trim() === "" ||
+          fullName.includes(query.toLowerCase()) ||
+          m.designation?.toLowerCase().includes(query.toLowerCase());
+        const matchesBranch =
+          branchFilter === "all" || m.branch_name === branchFilter;
+        return matchesQuery && matchesBranch;
+      })
+      .sort((a, b) => {
+        const rank = seniority(a.designation) - seniority(b.designation);
+        if (rank !== 0) return rank;
+        // Same rank, or both unranked: keep the alphabetical order the query
+        // already established.
+        return `${a.first_name} ${a.last_name}`.localeCompare(
+          `${b.first_name} ${b.last_name}`
+        );
+      });
   }, [members, query, branchFilter]);
 
   return (
