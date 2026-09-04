@@ -369,3 +369,29 @@ export interface BusinessPromotion {
   business?: Business;
   member?: Member;
 }
+
+// 15. Gallery Folder
+export interface GalleryFolder {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  cover_image_id: string | null;
+  is_published: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  images?: GalleryImage[];
+}
+
+// 16. Gallery Image
+export interface GalleryImage {
+  id: string;
+  folder_id: string;
+  image_url: string;
+  storage_path: string;
+  caption: string | null;
+  sort_order: number;
+  created_at: string;
+}

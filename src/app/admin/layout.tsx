@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   { href: "/admin/donations", label: "Donations", icon: "💰" },
   { href: "/admin/branches", label: "Branches", icon: "🏢" },
   { href: "/admin/homepage-slider", label: "Homepage Slider", icon: "🖼️" },
+  { href: "/admin/gallery", label: "Gallery", icon: "📷" },
   { href: "/admin/reports", label: "Reports", icon: "📈" },
   { href: "/admin/settings", label: "Settings", icon: "⚙️" },
 ];
