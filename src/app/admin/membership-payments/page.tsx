@@ -13,6 +13,7 @@ interface PendingPayment {
   membership_type: string | null;
   membership_fee_amount: number | null;
   membership_payment_submitted_at: string | null;
+  membership_payment_status: string | null;
   branch: { name: string }[] | null;
 }
 
@@ -28,6 +29,9 @@ export default function MembershipPaymentsPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
   const [adminId, setAdminId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<"all" | "submitted" | "not_submitted">(
+    "all"
+  );
 
   async function loadPendingPayments() {
     const supabase = createClient();
@@ -42,11 +46,21 @@ export default function MembershipPaymentsPage() {
       .select(`
         id, first_name, last_name, email, phone, avatar_url,
         membership_type, membership_fee_amount, membership_payment_submitted_at,
+        membership_payment_status,
         branch:branches(name)
       `)
+      // Everyone still awaiting payment, not just those who pressed "I have
+      // paid": a member who paid in cash or by direct transfer never submits
+      // one and would otherwise be invisible here.
       .eq("status", "approved_awaiting_payment")
-      .eq("membership_payment_status", "submitted")
-      .order("membership_payment_submitted_at", { ascending: true });
+      // A plain .neq would also drop rows where the column is NULL, since
+      // NULL <> 'confirmed' is NULL, not true — and those older rows are
+      // precisely the offline payers this list needs to show.
+      .or("membership_payment_status.is.null,membership_payment_status.neq.confirmed")
+      .order("membership_payment_submitted_at", {
+        ascending: true,
+        nullsFirst: false,
+      });
 
     if (error) {
       console.error("Failed to load pending payments:", error);
@@ -66,6 +80,20 @@ export default function MembershipPaymentsPage() {
       return;
     }
 
+    const member = payments.find((p) => p.id === memberId);
+
+    // Nobody pressed "I have paid" for this one, so there is no submission to
+    // check against a bank record. Make the admin say so out loud before it
+    // activates a membership.
+    if (member && !hasSubmitted(member)) {
+      const ok = confirm(
+        `${member.first_name} ${member.last_name} has not submitted a payment through the site.\n\n` +
+          "Only continue if you have verified the payment yourself — in the bank account, by UPI, or as cash received.\n\n" +
+          "Confirming activates the membership and issues a membership number."
+      );
+      if (!ok) return;
+    }
+
     setProcessing(memberId);
     const supabase = createClient();
 
@@ -76,7 +104,6 @@ export default function MembershipPaymentsPage() {
 
     if (error) {
       if (error.message.includes("does not exist")) {
-        const member = payments.find((p) => p.id === memberId);
         const isLifetime = member?.membership_type === "lifetime";
 
         const { error: fallbackError } = await supabase
@@ -107,8 +134,37 @@ export default function MembershipPaymentsPage() {
       }
     }
 
+    // Read the row back rather than assuming the write landed. The function is
+    // SECURITY DEFINER and its older version silently matched nothing unless
+    // the payment was already 'submitted', so an offline confirmation could
+    // disappear from this list having changed nothing at all. Checking the
+    // stored state works whichever version of the function is deployed.
+    const { data: after } = await supabase
+      .from("members")
+      .select("membership_payment_status")
+      .eq("id", memberId)
+      .single();
+
+    if (after && after.membership_payment_status !== "confirmed") {
+      alert(
+        "The payment was not confirmed — nothing changed.\n\n" +
+          "If this member paid offline, the database function still needs " +
+          "migration 013 applied. Ask a developer to run it, then try again."
+      );
+      setProcessing(null);
+      await loadPendingPayments();
+      return;
+    }
+
     setPayments((prev) => prev.filter((p) => p.id !== memberId));
     setProcessing(null);
+  }
+
+  // "Submitted" means the member pressed "I have paid" and there is a claimed
+  // payment to check. Anything else — 'pending', or null on older rows — is
+  // someone who paid offline, or has not paid at all.
+  function hasSubmitted(p: PendingPayment) {
+    return p.membership_payment_status === "submitted";
   }
 
   function formatDate(dateStr: string | null) {
@@ -122,6 +178,17 @@ export default function MembershipPaymentsPage() {
     });
   }
 
+  const submittedCount = payments.filter(hasSubmitted).length;
+  const offlineCount = payments.length - submittedCount;
+
+  const visible = payments.filter((p) =>
+    filter === "all"
+      ? true
+      : filter === "submitted"
+        ? hasSubmitted(p)
+        : !hasSubmitted(p)
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -130,7 +197,8 @@ export default function MembershipPaymentsPage() {
             Membership Payments
           </h1>
           <p className="mt-1 text-sm text-navy/60">
-            Verify and confirm membership fee payments
+            Verify and confirm membership fee payments, including those paid
+            in cash or by direct transfer
           </p>
         </div>
         <button
@@ -140,6 +208,28 @@ export default function MembershipPaymentsPage() {
           Refresh
         </button>
       </div>
+
+      {!loading && payments.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {([
+            ["all", `All (${payments.length})`],
+            ["submitted", `Awaiting review (${submittedCount})`],
+            ["not_submitted", `Not submitted (${offlineCount})`],
+          ] as const).map(([value, label]) => (
+            <button
+              key={value}
+              onClick={() => setFilter(value)}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                filter === value
+                  ? "bg-saffron-700 text-white"
+                  : "border border-saffron-300 text-navy/70 hover:bg-saffron-50"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <div className="rounded-xl border border-saffron-200 bg-white p-12 text-center">
@@ -153,6 +243,14 @@ export default function MembershipPaymentsPage() {
           </h2>
           <p className="mt-2 text-sm text-navy/60">
             All membership payments have been processed.
+          </p>
+        </div>
+      ) : visible.length === 0 ? (
+        <div className="rounded-xl border border-saffron-200 bg-white p-12 text-center">
+          <p className="text-navy/60">
+            {filter === "submitted"
+              ? "Nobody is waiting on a submitted payment right now."
+              : "No members are awaiting an offline payment right now."}
           </p>
         </div>
       ) : (
@@ -171,7 +269,7 @@ export default function MembershipPaymentsPage() {
                     Amount
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-navy/70 uppercase tracking-wider">
-                    Submitted
+                    Payment
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-semibold text-navy/70 uppercase tracking-wider">
                     Actions
@@ -179,7 +277,7 @@ export default function MembershipPaymentsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-saffron-100">
-                {payments.map((payment) => (
+                {visible.map((payment) => (
                   <tr key={payment.id} className="hover:bg-saffron-50/50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -231,9 +329,27 @@ export default function MembershipPaymentsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm text-navy/70">
-                        {formatDate(payment.membership_payment_submitted_at)}
-                      </span>
+                      {hasSubmitted(payment) ? (
+                        <>
+                          <span className="inline-flex items-center rounded-full bg-saffron-100 px-2.5 py-0.5 text-xs font-medium text-saffron-800">
+                            Submitted
+                          </span>
+                          <div className="mt-1 text-xs text-navy/60">
+                            {formatDate(
+                              payment.membership_payment_submitted_at
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <span className="inline-flex items-center rounded-full bg-navy/10 px-2.5 py-0.5 text-xs font-medium text-navy/70">
+                            Not submitted
+                          </span>
+                          <div className="mt-1 text-xs text-navy/50">
+                            Paid offline? Verify first
+                          </div>
+                        </>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button
@@ -243,7 +359,9 @@ export default function MembershipPaymentsPage() {
                       >
                         {processing === payment.id
                           ? "Processing..."
-                          : "Confirm Payment & Activate"}
+                          : hasSubmitted(payment)
+                            ? "Confirm Payment & Activate"
+                            : "Mark Paid & Activate"}
                       </button>
                     </td>
                   </tr>
@@ -270,6 +388,11 @@ export default function MembershipPaymentsPage() {
           <li className="flex items-start gap-2">
             <span className="text-forest">✓</span>
             Check payment reference/UTR number if provided
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-forest">✓</span>
+            A member marked &quot;Not submitted&quot; never confirmed a payment on
+            the site — check your own records before marking them paid
           </li>
           <li className="flex items-start gap-2">
             <span className="text-red-600">✗</span>
