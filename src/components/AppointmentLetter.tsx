@@ -372,7 +372,7 @@ function MarginSlogan({ side, lines }: { side: "left" | "right"; lines: string[]
   return (
     <div
       aria-hidden="true"
-      className={`pointer-events-none absolute top-[300px] z-0 flex h-[280px] w-[42px] items-center justify-center ${
+      className={`pointer-events-none absolute top-[400px] z-0 flex h-[290px] w-[42px] items-center justify-center ${
         side === "left" ? "left-0" : "right-0"
       }`}
     >
@@ -672,8 +672,11 @@ export default function AppointmentLetter({
           />
 
           {/* Decorative margin slogans */}
-          <MarginSlogan side="left" lines={["साथ संगठन सशक्त भारत"]} />
-          <MarginSlogan side="right" lines={["Viksit Bharat", "Hamari Prathmikta"]} />
+          <MarginSlogan side="left" lines={["राष्ट्र के लिए समर्पित लोगों का संगठन"]} />
+          <MarginSlogan
+            side="right"
+            lines={["Together we build a better Bharat.", "Make Bharat tricolor like Indian flag."]}
+          />
 
           <div className="relative z-10 flex flex-1 flex-col px-[42px] pt-[9px] pb-0">
             {/* 1 — Top tagline */}
