@@ -673,10 +673,7 @@ export default function AppointmentLetter({
 
           {/* Decorative margin slogans */}
           <MarginSlogan side="left" lines={["राष्ट्र के लिए समर्पित लोगों का संगठन"]} />
-          <MarginSlogan
-            side="right"
-            lines={["Together we build a better Bharat.", "Make Bharat tricolor like Indian flag."]}
-          />
+          <MarginSlogan side="right" lines={["Together we build a better Bharat."]} />
 
           <div className="relative z-10 flex flex-1 flex-col px-[42px] pt-[9px] pb-0">
             {/* 1 — Top tagline */}
