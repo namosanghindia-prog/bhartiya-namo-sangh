@@ -59,12 +59,6 @@ export async function POST(request: NextRequest) {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-  // Debug logging (server-side only)
-  console.log("[delete-member] Attempting to delete user:", memberId);
-  console.log("[delete-member] SUPABASE_SERVICE_ROLE_KEY defined:", !!serviceRoleKey);
-  console.log("[delete-member] SUPABASE_SERVICE_ROLE_KEY starts with:", serviceRoleKey?.substring(0, 15) + "...");
-  console.log("[delete-member] NEXT_PUBLIC_SUPABASE_URL:", supabaseUrl);
-
   if (!serviceRoleKey) {
     console.error("[delete-member] SUPABASE_SERVICE_ROLE_KEY is not configured");
     return NextResponse.json(
@@ -88,33 +82,34 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  console.log("[delete-member] Calling auth.admin.deleteUser...");
-
-  const { data, error } = await supabaseAdmin.auth.admin.deleteUser(memberId);
-
-  console.log("[delete-member] deleteUser response - data:", JSON.stringify(data));
-  console.log("[delete-member] deleteUser response - error:", JSON.stringify(error));
+  const { error } = await supabaseAdmin.auth.admin.deleteUser(memberId);
 
   if (error) {
-    console.error("[delete-member] Failed to delete auth user. Full error object:", {
+    console.error("[delete-member] Failed to delete auth user:", {
+      memberId,
       message: error.message,
       status: error.status,
       name: error.name,
-      cause: error.cause,
-      stack: error.stack,
     });
+
+    // Deleting the auth user cascades to public.members, so anything still
+    // pointing at that member with an ON DELETE NO ACTION foreign key refuses
+    // the delete — and Supabase reports every such refusal with this one
+    // opaque message. Say what it actually means; migration 017 is what
+    // relaxes those constraints.
+    const isConstraintFailure = /database error deleting user/i.test(
+      error.message
+    );
+
     return NextResponse.json(
       {
-        error: `Failed to delete member: ${error.message}`,
-        details: {
-          status: error.status,
-          name: error.name,
-        }
+        error: isConstraintFailure
+          ? "The database refused to delete this member, most likely because other records still reference them. Check that migration 017_allow_member_deletion.sql has been applied."
+          : `Failed to delete member: ${error.message}`,
       },
       { status: 500 }
     );
   }
 
-  console.log("[delete-member] Successfully deleted auth user:", memberId);
   return NextResponse.json({ success: true });
 }
