@@ -123,6 +123,14 @@ export default function AdminMembersPage() {
     });
   }, [members, query, status]);
 
+  // The two columns. Approval is the split that matters day to day: who is a
+  // member, and who is still waiting on (or was refused) a decision.
+  const approved = useMemo(() => filtered.filter(isApproved), [filtered]);
+  const unapproved = useMemo(
+    () => filtered.filter((m) => !isApproved(m)),
+    [filtered]
+  );
+
   function handleViewIdCard(member: Member) {
     setSelectedMember(member);
     setShowIdCard(true);
@@ -324,6 +332,134 @@ export default function AdminMembersPage() {
     }
   }
 
+  function renderMemberCard(m: Member) {
+    return (
+      <li key={m.id} className="border-t border-saffron-100 p-4">
+        <div className="flex items-start gap-3">
+          {m.avatar_url ? (
+            <img
+              src={m.avatar_url}
+              alt=""
+              className="h-10 w-10 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <div className="h-10 w-10 shrink-0 rounded-full bg-saffron-200 flex items-center justify-center text-xs font-semibold text-saffron-800">
+              {m.first_name[0]}
+              {m.last_name[0]}
+            </div>
+          )}
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <span className="font-medium text-navy break-words">
+                {m.first_name} {m.last_name}
+              </span>
+              <span
+                className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                  m.status === "active"
+                    ? "bg-forest/10 text-forest"
+                    : m.status === "pending"
+                    ? "bg-saffron-100 text-saffron-800"
+                    : m.status === "suspended"
+                    ? "bg-red-100 text-red-700"
+                    : m.status === "approved_awaiting_payment"
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-navy/10 text-navy/60"
+                }`}
+              >
+                {m.status === "approved_awaiting_payment"
+                  ? "awaiting payment"
+                  : m.status}
+              </span>
+            </div>
+
+            <p className="text-xs text-navy/70 break-all">{m.email || "—"}</p>
+            <p className="mt-1 text-xs text-navy/50">
+              {m.branch?.[0]?.name || "No branch"}
+              {" · "}
+              {m.membership_number
+                ? `BNMS/${m.membership_number.toString().padStart(4, "0")}`
+                : "No membership number"}
+              {" · joined "}
+              {formatDate(m.created_at)}
+            </p>
+
+            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+              {m.status === "active" && m.membership_number && (
+                <>
+                  <button
+                    onClick={() => handleViewIdCard(m)}
+                    className="text-xs font-medium text-saffron-700 hover:text-saffron-800"
+                  >
+                    ID Card
+                  </button>
+                  <button
+                    onClick={() => handleViewAppointmentLetter(m)}
+                    className="text-xs font-medium text-saffron-700 hover:text-saffron-800"
+                  >
+                    Appointment Letter
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => handleEdit(m)}
+                className="text-xs font-medium text-navy/60 hover:text-navy"
+              >
+                Edit
+              </button>
+              {(m.status === "active" || m.status === "inactive") && (
+                <button
+                  onClick={() => handleToggleStatus(m)}
+                  disabled={processing === m.id}
+                  className={`text-xs font-medium ${
+                    m.status === "active"
+                      ? "text-orange-600 hover:text-orange-700"
+                      : "text-forest hover:text-forest/80"
+                  } disabled:opacity-50`}
+                >
+                  {processing === m.id
+                    ? "..."
+                    : m.status === "active"
+                    ? "Deactivate"
+                    : "Activate"}
+                </button>
+              )}
+              <button
+                onClick={() => handleDelete(m)}
+                disabled={processing === m.id}
+                className="text-xs font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
+              >
+                {processing === m.id ? "..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </li>
+    );
+  }
+
+  function renderColumn(title: string, list: Member[], emptyText: string) {
+    return (
+      <div className="rounded-xl border border-saffron-200 bg-white">
+        <div className="flex items-center justify-between px-4 py-3 bg-saffron-50 rounded-t-xl">
+          <h2 className="font-heading text-sm font-semibold text-navy">
+            {title}
+          </h2>
+          <span className="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-navy/60">
+            {list.length}
+          </span>
+        </div>
+        {list.length === 0 ? (
+          <p className="px-4 py-8 text-center text-sm text-navy/50">
+            {emptyText}
+          </p>
+        ) : (
+          <ul>{list.map(renderMemberCard)}</ul>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -366,130 +502,22 @@ export default function AdminMembersPage() {
         </div>
       ) : (
         <>
-          {/* Table */}
-          <div className="rounded-xl border border-saffron-200 bg-white overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-saffron-50 text-navy/70">
-                <tr>
-                  <th className="text-left px-4 py-3 font-medium">Name</th>
-                  <th className="text-left px-4 py-3 font-medium">Email</th>
-                  <th className="text-left px-4 py-3 font-medium">Branch</th>
-                  <th className="text-left px-4 py-3 font-medium">Membership #</th>
-                  <th className="text-left px-4 py-3 font-medium">Joined</th>
-                  <th className="text-left px-4 py-3 font-medium">Status</th>
-                  <th className="text-right px-4 py-3 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((m) => (
-                  <tr key={m.id} className="border-t border-saffron-100">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {m.avatar_url ? (
-                          <img
-                            src={m.avatar_url}
-                            alt=""
-                            className="h-8 w-8 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="h-8 w-8 rounded-full bg-saffron-200 flex items-center justify-center text-xs font-semibold text-saffron-800">
-                            {m.first_name[0]}{m.last_name[0]}
-                          </div>
-                        )}
-                        <span className="font-medium text-navy">
-                          {m.first_name} {m.last_name}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-navy/70">{m.email || "—"}</td>
-                    <td className="px-4 py-3 text-navy/70">{m.branch?.[0]?.name || "—"}</td>
-                    <td className="px-4 py-3 text-navy/70 font-mono text-xs">
-                      {m.membership_number
-                        ? `BNMS/${m.membership_number.toString().padStart(4, "0")}`
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-3 text-navy/70">
-                      {formatDate(m.created_at)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          m.status === "active"
-                            ? "bg-forest/10 text-forest"
-                            : m.status === "pending"
-                            ? "bg-saffron-100 text-saffron-800"
-                            : m.status === "suspended"
-                            ? "bg-red-100 text-red-700"
-                            : m.status === "approved_awaiting_payment"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-navy/10 text-navy/60"
-                        }`}
-                      >
-                        {m.status === "approved_awaiting_payment" ? "awaiting payment" : m.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right space-x-2">
-                      {m.status === "active" && m.membership_number && (
-                        <>
-                          <button
-                            onClick={() => handleViewIdCard(m)}
-                            className="text-xs font-medium text-saffron-700 hover:text-saffron-800"
-                          >
-                            ID Card
-                          </button>
-                          <button
-                            onClick={() => handleViewAppointmentLetter(m)}
-                            className="text-xs font-medium text-saffron-700 hover:text-saffron-800"
-                          >
-                            Appointment Letter
-                          </button>
-                        </>
-                      )}
-                      <button
-                        onClick={() => handleEdit(m)}
-                        className="text-xs font-medium text-navy/60 hover:text-navy"
-                      >
-                        Edit
-                      </button>
-                      {(m.status === "active" || m.status === "inactive") && (
-                        <button
-                          onClick={() => handleToggleStatus(m)}
-                          disabled={processing === m.id}
-                          className={`text-xs font-medium ${
-                            m.status === "active"
-                              ? "text-orange-600 hover:text-orange-700"
-                              : "text-forest hover:text-forest/80"
-                          } disabled:opacity-50`}
-                        >
-                          {processing === m.id
-                            ? "..."
-                            : m.status === "active"
-                            ? "Deactivate"
-                            : "Activate"}
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDelete(m)}
-                        disabled={processing === m.id}
-                        className="text-xs font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
-                      >
-                        {processing === m.id ? "..." : "Delete"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-navy/50">
-                      No members found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          {/* Approved and unapproved side by side */}
+          <div className="grid gap-6 lg:grid-cols-2 items-start">
+            {renderColumn(
+              "Approved members",
+              approved,
+              "No approved members match this filter."
+            )}
+            {renderColumn(
+              "Not yet approved",
+              unapproved,
+              "No unapproved members match this filter."
+            )}
           </div>
           <p className="text-xs text-navy/50">
-            Showing {filtered.length} of {members.length} members
+            Showing {filtered.length} of {members.length} members —{" "}
+            {approved.length} approved, {unapproved.length} not approved
           </p>
         </>
       )}

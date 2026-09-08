@@ -82,7 +82,48 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  const { error } = await supabaseAdmin.auth.admin.deleteUser(memberId);
+  let { error } = await supabaseAdmin.auth.admin.deleteUser(memberId);
+
+  if (error) {
+    // The straightforward order is to delete the auth user and let the
+    // cascade carry the member row away with it. That is what keeps failing:
+    // GoTrue deletes auth.users as supabase_auth_admin, so the cascade fires
+    // the AFTER triggers on members as *that* role, which has no rights on
+    // branches or badges — Postgres refuses and GoTrue reports an error that
+    // stringifies to nothing.
+    //
+    // The service role does have those rights. Removing the profile row here
+    // first means the cascade has no member row left to touch and no trigger
+    // to run, so the retry goes through. Retrying the whole request is safe:
+    // deleting an already-deleted row is not an error.
+    console.warn(
+      "[delete-member] Cascade delete refused, removing profile row first:",
+      error.message
+    );
+
+    const { error: profileError } = await supabaseAdmin
+      .from("members")
+      .delete()
+      .eq("id", memberId);
+
+    if (profileError) {
+      console.error("[delete-member] Could not delete profile row:", {
+        memberId,
+        message: profileError.message,
+        details: profileError.details,
+        hint: profileError.hint,
+        code: profileError.code,
+      });
+      return NextResponse.json(
+        {
+          error: `Could not delete this member's profile: ${profileError.message}`,
+        },
+        { status: 500 }
+      );
+    }
+
+    ({ error } = await supabaseAdmin.auth.admin.deleteUser(memberId));
+  }
 
   if (error) {
     console.error("[delete-member] Failed to delete auth user:", {
@@ -106,7 +147,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: isOpaqueDbFailure
-          ? "The database refused to delete this member. This is usually a record still referencing them, or a trigger the auth service cannot run — check that migrations 017_allow_member_deletion.sql and 018_member_triggers_security_definer.sql have both been applied, then see the Postgres logs for the exact cause."
+          ? "The member's profile was removed, but their login account could not be deleted. Something outside the members table still references it — check the Postgres logs for the exact constraint."
           : `Failed to delete member: ${detail}`,
       },
       { status: 500 }
