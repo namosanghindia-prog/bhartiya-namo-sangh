@@ -316,7 +316,9 @@ export default function AdminMembersPage() {
       setMembers((prev) => prev.filter((m) => m.id !== member.id));
     } catch (err) {
       console.error("Failed to delete member:", err);
-      alert("Failed to delete member: " + (err instanceof Error ? err.message : "Unknown error"));
+      // The route's message already says what went wrong; prefixing it again
+      // is what produced "Failed to delete member: Failed to delete member:".
+      alert(err instanceof Error ? err.message : "Failed to delete member.");
     } finally {
       setProcessing(null);
     }

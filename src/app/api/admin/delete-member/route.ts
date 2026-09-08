@@ -92,20 +92,22 @@ export async function POST(request: NextRequest) {
       name: error.name,
     });
 
-    // Deleting the auth user cascades to public.members, so anything still
-    // pointing at that member with an ON DELETE NO ACTION foreign key refuses
-    // the delete — and Supabase reports every such refusal with this one
-    // opaque message. Say what it actually means; migration 017 is what
-    // relaxes those constraints.
-    const isConstraintFailure = /database error deleting user/i.test(
-      error.message
-    );
+    // Deleting the auth user cascades to public.members, and the database can
+    // refuse that cascade in two ways: a foreign key that still points at the
+    // member (migration 017), or an AFTER trigger on members that the auth
+    // service's own role is not allowed to run (migration 018). GoTrue reports
+    // both of them uselessly — "Database error deleting user", or an error
+    // that stringifies to nothing at all — so name the real suspects rather
+    // than passing the noise through.
+    const detail = error.message?.trim();
+    const isOpaqueDbFailure =
+      !detail || detail === "{}" || /database error deleting user/i.test(detail);
 
     return NextResponse.json(
       {
-        error: isConstraintFailure
-          ? "The database refused to delete this member, most likely because other records still reference them. Check that migration 017_allow_member_deletion.sql has been applied."
-          : `Failed to delete member: ${error.message}`,
+        error: isOpaqueDbFailure
+          ? "The database refused to delete this member. This is usually a record still referencing them, or a trigger the auth service cannot run — check that migrations 017_allow_member_deletion.sql and 018_member_triggers_security_definer.sql have both been applied, then see the Postgres logs for the exact cause."
+          : `Failed to delete member: ${detail}`,
       },
       { status: 500 }
     );
