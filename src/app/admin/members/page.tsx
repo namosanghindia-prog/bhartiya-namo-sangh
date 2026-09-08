@@ -1,7 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import {
+  AVATAR_ACCEPTED_TYPES,
+  AVATAR_MAX_BYTES,
+  removeSupersededAvatars,
+  uploadAvatar,
+} from "@/lib/avatar";
 import MembershipCard from "@/components/MembershipCard";
 import AppointmentLetter from "@/components/AppointmentLetter";
 import type { Branch } from "@/lib/supabase/types";
@@ -29,6 +35,18 @@ interface Member {
   branch: { name: string; state: string | null }[] | null;
 }
 
+/**
+ * Statuses a member reaches only once an admin has approved their application.
+ * A photo an admin sets becomes that member's ID card and appointment letter
+ * photo, so it is offered for approved members only — never for an application
+ * still awaiting review, or one that was turned down.
+ */
+const APPROVED_STATUSES = ["active", "inactive", "approved_awaiting_payment"];
+
+function isApproved(member: Member) {
+  return APPROVED_STATUSES.includes(member.status);
+}
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", {
     day: "numeric",
@@ -50,6 +68,9 @@ export default function AdminMembersPage() {
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [saving, setSaving] = useState(false);
   const [processing, setProcessing] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   async function loadData() {
     setLoading(true);
@@ -124,12 +145,78 @@ export default function AdminMembersPage() {
 
   function handleEdit(member: Member) {
     setEditingMember({ ...member });
+    setPhotoError(null);
     setShowEditModal(true);
   }
 
   function closeEditModal() {
     setShowEditModal(false);
     setEditingMember(null);
+    setPhotoError(null);
+  }
+
+  /**
+   * Replaces a member's profile photo on the admin's behalf.
+   *
+   * This saves on its own rather than waiting for "Save Changes": the file has
+   * already been uploaded to storage by then, so writing the URL immediately is
+   * what keeps the record and the bucket agreeing with each other.
+   */
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    // Clear the input so picking the same file again still fires a change.
+    e.target.value = "";
+    if (!file || !editingMember) return;
+
+    if (!AVATAR_ACCEPTED_TYPES.includes(file.type)) {
+      setPhotoError("Please select a JPG, PNG, or WebP image");
+      return;
+    }
+
+    if (file.size > AVATAR_MAX_BYTES) {
+      setPhotoError("Image must be less than 2MB");
+      return;
+    }
+
+    setUploadingPhoto(true);
+    setPhotoError(null);
+
+    const supabase = createClient();
+    const memberId = editingMember.id;
+
+    const { publicUrl, error: uploadError } = await uploadAvatar(
+      supabase,
+      memberId,
+      file,
+      file.type
+    );
+
+    if (uploadError || !publicUrl) {
+      setUploadingPhoto(false);
+      setPhotoError(uploadError || "Upload failed");
+      return;
+    }
+
+    const { error: updateError } = await supabase
+      .from("members")
+      .update({ avatar_url: publicUrl })
+      .eq("id", memberId);
+
+    if (updateError) {
+      setUploadingPhoto(false);
+      setPhotoError(updateError.message);
+      return;
+    }
+
+    await removeSupersededAvatars(supabase, memberId, publicUrl);
+
+    setUploadingPhoto(false);
+    setEditingMember((prev) =>
+      prev && prev.id === memberId ? { ...prev, avatar_url: publicUrl } : prev
+    );
+    setMembers((prev) =>
+      prev.map((m) => (m.id === memberId ? { ...m, avatar_url: publicUrl } : m))
+    );
   }
 
   async function handleSaveEdit() {
@@ -426,6 +513,55 @@ export default function AdminMembersPage() {
               </div>
 
               <div className="space-y-4">
+                {isApproved(editingMember) && (
+                  <div className="rounded-lg border border-saffron-100 bg-saffron-50/50 p-4">
+                    <label className="block text-sm font-medium text-navy/70 mb-2">
+                      Profile Photo
+                    </label>
+                    <div className="flex items-center gap-4">
+                      {editingMember.avatar_url ? (
+                        <img
+                          src={editingMember.avatar_url}
+                          alt=""
+                          className="h-16 w-16 rounded-full object-cover border-2 border-saffron-200"
+                        />
+                      ) : (
+                        <div className="h-16 w-16 rounded-full bg-saffron-200 flex items-center justify-center font-heading text-lg font-semibold text-saffron-800 border-2 border-saffron-300">
+                          {editingMember.first_name[0]}
+                          {editingMember.last_name[0]}
+                        </div>
+                      )}
+                      <div>
+                        <input
+                          ref={photoInputRef}
+                          type="file"
+                          accept={AVATAR_ACCEPTED_TYPES.join(",")}
+                          onChange={handlePhotoUpload}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => photoInputRef.current?.click()}
+                          disabled={uploadingPhoto}
+                          className="rounded-md border border-saffron-300 px-4 py-2 text-sm font-medium text-navy hover:bg-saffron-50 disabled:opacity-60"
+                        >
+                          {uploadingPhoto
+                            ? "Uploading..."
+                            : editingMember.avatar_url
+                            ? "Change Photo"
+                            : "Upload Photo"}
+                        </button>
+                        <p className="mt-1 text-xs text-navy/50">
+                          JPG, PNG or WebP. Max 2MB. Saves straight away.
+                        </p>
+                      </div>
+                    </div>
+                    {photoError && (
+                      <p className="mt-2 text-xs text-red-600">{photoError}</p>
+                    )}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-navy/70 mb-1">First Name</label>
