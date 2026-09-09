@@ -18,12 +18,16 @@ const DESIGNATION_RANK: Record<string, number> = {
   "it head": 8,
 };
 
-// Manual placement overrides for the public grid, keyed by full name as it is
-// stored on the member record. The key's card is moved to sit immediately after
-// the anchor's card, overriding the designation/alphabetical order below. This
-// is display only — no membership number is touched.
+// Manual placement overrides for the public grid, keyed by full name exactly as
+// stored on the member record — first_name + last_name. The key's card is moved
+// to sit immediately after the anchor's card, overriding the designation and
+// alphabetical order below. Display only: no membership number is touched.
+//
+// The names here must track the database. The president is stored as
+// "Manoj Singh" / "Tomar (Mannu Bhaiya)", so the anchor carries the
+// parenthetical; rename him in the admin panel and this pin stops resolving.
 const PINNED_AFTER: Record<string, string> = {
-  "Hemant Sharma": "Mannu Singh Tomar",
+  "Hemant Sharma": "Manoj Singh Tomar (Mannu Bhaiya)",
 };
 
 function displayName(member: PublicMember): string {
@@ -42,7 +46,15 @@ function applyPins(sorted: PublicMember[]): PublicMember[] {
   for (const [name, anchorName] of Object.entries(PINNED_AFTER)) {
     const from = result.findIndex((m) => sameName(m, name));
     const anchor = result.findIndex((m) => sameName(m, anchorName));
-    if (from === -1 || anchor === -1) continue;
+    if (from === -1 || anchor === -1) {
+      // Either a filter is hiding a card — normal — or a name was edited and
+      // the pin no longer resolves. Say so rather than silently doing nothing.
+      console.warn(
+        `Members page: could not pin "${name}" after "${anchorName}" ` +
+          `(${from === -1 ? "pinned card" : "anchor"} not in the list).`
+      );
+      continue;
+    }
     const [pinned] = result.splice(from, 1);
     // Pulling the card out shifts the anchor left when it sat to the right.
     result.splice(from < anchor ? anchor : anchor + 1, 0, pinned);
