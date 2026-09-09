@@ -18,6 +18,38 @@ const DESIGNATION_RANK: Record<string, number> = {
   "it head": 8,
 };
 
+// Manual placement overrides for the public grid, keyed by full name as it is
+// stored on the member record. The key's card is moved to sit immediately after
+// the anchor's card, overriding the designation/alphabetical order below. This
+// is display only — no membership number is touched.
+const PINNED_AFTER: Record<string, string> = {
+  "Hemant Sharma": "Mannu Singh Tomar",
+};
+
+function displayName(member: PublicMember): string {
+  return `${member.first_name} ${member.last_name}`.trim().replace(/\s+/g, " ");
+}
+
+function sameName(member: PublicMember, name: string): boolean {
+  return displayName(member).toLowerCase() === name.toLowerCase();
+}
+
+// Applies PINNED_AFTER to an already-sorted list. A pin is skipped whenever
+// either card is missing — a search or branch filter can hide one of them, and
+// the rest of the order then stays exactly as sorted.
+function applyPins(sorted: PublicMember[]): PublicMember[] {
+  const result = [...sorted];
+  for (const [name, anchorName] of Object.entries(PINNED_AFTER)) {
+    const from = result.findIndex((m) => sameName(m, name));
+    const anchor = result.findIndex((m) => sameName(m, anchorName));
+    if (from === -1 || anchor === -1) continue;
+    const [pinned] = result.splice(from, 1);
+    // Pulling the card out shifts the anchor left when it sat to the right.
+    result.splice(from < anchor ? anchor : anchor + 1, 0, pinned);
+  }
+  return result;
+}
+
 function seniority(designation: string | null): number {
   if (!designation) return Number.MAX_SAFE_INTEGER;
   return (
@@ -63,7 +95,7 @@ export default function MembersPage() {
   }, [members]);
 
   const filtered = useMemo(() => {
-    return members
+    const ordered = members
       .filter((m) => {
         const fullName = `${m.first_name} ${m.last_name}`.toLowerCase();
         const matchesQuery =
@@ -83,6 +115,8 @@ export default function MembersPage() {
           `${b.first_name} ${b.last_name}`
         );
       });
+
+    return applyPins(ordered);
   }, [members, query, branchFilter]);
 
   return (
