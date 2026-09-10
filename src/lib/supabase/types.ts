@@ -99,6 +99,7 @@ export interface PublicMembershipVerification {
 
 // Public member view (for /members page)
 export interface PublicMember {
+  id: string;
   first_name: string;
   last_name: string;
   designation: string | null;

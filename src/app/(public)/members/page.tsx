@@ -3,72 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { PublicMember } from "@/lib/supabase/types";
-
-// Office-bearer seniority. Titles are matched case-insensitively and ignoring
-// stray whitespace, since designations are free text typed by members.
-// Anything unlisted sorts after all of these, alphabetically.
-const DESIGNATION_RANK: Record<string, number> = {
-  "president": 1,
-  "vice president": 2,
-  "general secretary": 3,
-  "secretary": 4,
-  "treasurer": 5,
-  "joint secretary": 6,
-  "spokesperson": 7,
-  "it head": 8,
-};
-
-// Manual placement overrides for the public grid, keyed by full name exactly as
-// stored on the member record — first_name + last_name. The key's card is moved
-// to sit immediately after the anchor's card, overriding the designation and
-// alphabetical order below. Display only: no membership number is touched.
-//
-// The names here must track the database. The president is stored as
-// "Manoj Singh" / "Tomar (Mannu Bhaiya)", so the anchor carries the
-// parenthetical; rename him in the admin panel and this pin stops resolving.
-const PINNED_AFTER: Record<string, string> = {
-  "Hemant Sharma": "Manoj Singh Tomar (Mannu Bhaiya)",
-};
-
-function displayName(member: PublicMember): string {
-  return `${member.first_name} ${member.last_name}`.trim().replace(/\s+/g, " ");
-}
-
-function sameName(member: PublicMember, name: string): boolean {
-  return displayName(member).toLowerCase() === name.toLowerCase();
-}
-
-// Applies PINNED_AFTER to an already-sorted list. A pin is skipped whenever
-// either card is missing — a search or branch filter can hide one of them, and
-// the rest of the order then stays exactly as sorted.
-function applyPins(sorted: PublicMember[]): PublicMember[] {
-  const result = [...sorted];
-  for (const [name, anchorName] of Object.entries(PINNED_AFTER)) {
-    const from = result.findIndex((m) => sameName(m, name));
-    const anchor = result.findIndex((m) => sameName(m, anchorName));
-    if (from === -1 || anchor === -1) {
-      // Either a filter is hiding a card — normal — or a name was edited and
-      // the pin no longer resolves. Say so rather than silently doing nothing.
-      console.warn(
-        `Members page: could not pin "${name}" after "${anchorName}" ` +
-          `(${from === -1 ? "pinned card" : "anchor"} not in the list).`
-      );
-      continue;
-    }
-    const [pinned] = result.splice(from, 1);
-    // Pulling the card out shifts the anchor left when it sat to the right.
-    result.splice(from < anchor ? anchor : anchor + 1, 0, pinned);
-  }
-  return result;
-}
-
-function seniority(designation: string | null): number {
-  if (!designation) return Number.MAX_SAFE_INTEGER;
-  return (
-    DESIGNATION_RANK[designation.trim().toLowerCase()] ??
-    Number.MAX_SAFE_INTEGER
-  );
-}
+import { orderMembers, fetchPositions } from "@/lib/member-order";
 
 export default function MembersPage() {
   const [members, setMembers] = useState<PublicMember[]>([]);
@@ -79,20 +14,17 @@ export default function MembersPage() {
   useEffect(() => {
     async function fetchMembers() {
       const supabase = createClient();
-      // Office bearers lead the list, most senior first, so the President
-      // heads the page; everyone else follows alphabetically. The
-      // public_members view does not expose membership_number, so seniority
-      // comes from the designation rather than the member number.
-      const { data, error } = await supabase
-        .from("public_members")
-        .select("*")
-        .order("first_name")
-        .order("last_name");
+      // Ordered as the admin arranged them on /admin/member-order; see
+      // orderMembers for members not yet placed.
+      const [{ data, error }, positions] = await Promise.all([
+        supabase.from("public_members").select("*"),
+        fetchPositions(supabase),
+      ]);
 
       if (error) {
         console.error("Failed to fetch members:", error);
       } else if (data) {
-        setMembers(data);
+        setMembers(orderMembers(data, positions));
       }
       setLoading(false);
     }
@@ -106,9 +38,10 @@ export default function MembersPage() {
     return Array.from(uniqueBranches).sort();
   }, [members]);
 
-  const filtered = useMemo(() => {
-    const ordered = members
-      .filter((m) => {
+  // members is already in display order; filtering keeps it.
+  const filtered = useMemo(
+    () =>
+      members.filter((m) => {
         const fullName = `${m.first_name} ${m.last_name}`.toLowerCase();
         const matchesQuery =
           query.trim() === "" ||
@@ -117,19 +50,9 @@ export default function MembersPage() {
         const matchesBranch =
           branchFilter === "all" || m.branch_name === branchFilter;
         return matchesQuery && matchesBranch;
-      })
-      .sort((a, b) => {
-        const rank = seniority(a.designation) - seniority(b.designation);
-        if (rank !== 0) return rank;
-        // Same rank, or both unranked: keep the alphabetical order the query
-        // already established.
-        return `${a.first_name} ${a.last_name}`.localeCompare(
-          `${b.first_name} ${b.last_name}`
-        );
-      });
-
-    return applyPins(ordered);
-  }, [members, query, branchFilter]);
+      }),
+    [members, query, branchFilter]
+  );
 
   return (
     <>
@@ -192,9 +115,9 @@ export default function MembersPage() {
                 Showing {filtered.length} of {members.length} members
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {filtered.map((member, idx) => (
+                {filtered.map((member) => (
                   <div
-                    key={idx}
+                    key={member.id}
                     className="rounded-xl border border-saffron-200 bg-white p-5 text-center hover:border-saffron-400 transition-colors"
                   >
                     {member.avatar_url ? (
