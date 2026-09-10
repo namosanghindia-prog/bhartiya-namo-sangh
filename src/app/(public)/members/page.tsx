@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { PublicMember } from "@/lib/supabase/types";
 
 // Office-bearer seniority. Titles are matched case-insensitively and ignoring
-// stray whitespace, since designations are free text typed by an admin.
+// stray whitespace, since designations are free text typed by members.
 // Anything unlisted sorts after all of these, alphabetically.
 const DESIGNATION_RANK: Record<string, number> = {
   "president": 1,

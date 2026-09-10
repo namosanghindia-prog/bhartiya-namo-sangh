@@ -10,6 +10,7 @@ interface ProfileChangeRequest {
   status: "pending" | "approved" | "rejected";
   requested_first_name: string | null;
   requested_last_name: string | null;
+  current_designation: string | null;
   requested_designation: string | null;
   requested_at: string;
   reviewed_at: string | null;
@@ -44,7 +45,7 @@ export default function ProfilePage() {
         supabase.from("branches").select("*").eq("is_active", true).order("name"),
         supabase
           .from("profile_change_requests")
-          .select("id, status, requested_first_name, requested_last_name, requested_designation, requested_at, reviewed_at, rejection_reason")
+          .select("id, status, requested_first_name, requested_last_name, current_designation, requested_designation, requested_at, reviewed_at, rejection_reason")
           .eq("member_id", user.id)
           .order("requested_at", { ascending: false })
           .limit(1)
@@ -83,19 +84,18 @@ export default function ProfilePage() {
       phone: formData.get("phone") as string,
       branch_id: formData.get("branch") as string || null,
       address: formData.get("address") as string || null,
+      designation: normalize(formData.get("designation") as string) || null,
     };
 
     // Fields that require admin approval
     const requestedFirstName = normalize(formData.get("firstName") as string);
     const requestedLastName = normalize(formData.get("lastName") as string);
-    const requestedDesignation = normalize(formData.get("designation") as string);
-    // While a request is pending the identity fields are disabled (and thus
-    // absent from FormData), so only phone/branch/address can change.
+    // While a request is pending the name fields are disabled (and thus
+    // absent from FormData), so only the directly saved fields can change.
     const identityChanged =
       !hasPendingRequest &&
       (requestedFirstName !== normalize(member.first_name) ||
-        requestedLastName !== normalize(member.last_name) ||
-        requestedDesignation !== normalize(member.designation));
+        requestedLastName !== normalize(member.last_name));
 
     if (identityChanged && (!requestedFirstName || !requestedLastName)) {
       setSaving(false);
@@ -124,13 +124,15 @@ export default function ProfilePage() {
           member_id: member.id,
           current_first_name: member.first_name,
           current_last_name: member.last_name,
-          current_designation: member.designation,
+          // Designation now saves directly; both columns hold the value just
+          // saved so approving this request leaves designation alone.
+          current_designation: updates.designation,
           requested_first_name: requestedFirstName,
           requested_last_name: requestedLastName,
-          requested_designation: requestedDesignation || null,
+          requested_designation: updates.designation,
           status: "pending",
         })
-        .select("id, status, requested_first_name, requested_last_name, requested_designation, requested_at, reviewed_at, rejection_reason")
+        .select("id, status, requested_first_name, requested_last_name, current_designation, requested_designation, requested_at, reviewed_at, rejection_reason")
         .single();
 
       setSaving(false);
@@ -138,9 +140,9 @@ export default function ProfilePage() {
       if (requestError) {
         const friendly =
           requestError.code === "23505"
-            ? "You already have a name/designation change awaiting admin approval."
+            ? "You already have a name change awaiting admin approval."
             : requestError.message;
-        setError("Your other details were saved, but the name/designation change request failed: " + friendly);
+        setError("Your other details were saved, but the name change request failed: " + friendly);
         return;
       }
 
@@ -307,11 +309,12 @@ export default function ProfilePage() {
         {hasPendingRequest && changeRequest && (
           <div className="rounded-md border border-saffron-300 bg-saffron-50 px-4 py-3 text-sm text-saffron-900">
             <p className="font-semibold">
-              Your name/designation change is awaiting admin approval.
+              Your name change is awaiting admin approval.
             </p>
             <p className="mt-1 text-xs text-navy/70">
               Requested: <span className="font-medium text-navy">{changeRequest.requested_first_name} {changeRequest.requested_last_name}</span>
-              {changeRequest.requested_designation ? (
+              {changeRequest.requested_designation &&
+              normalize(changeRequest.requested_designation) !== normalize(changeRequest.current_designation) ? (
                 <> &middot; <span className="font-medium text-navy">{changeRequest.requested_designation}</span></>
               ) : null}
               {" "}on {new Date(changeRequest.requested_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}.
@@ -322,7 +325,7 @@ export default function ProfilePage() {
 
         {lastRejected && (
           <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-            <p className="font-semibold">Your last name/designation change request was rejected.</p>
+            <p className="font-semibold">Your last name change request was rejected.</p>
             {lastRejected.rejection_reason && (
               <p className="mt-1 text-xs">Reason: {lastRejected.rejection_reason}</p>
             )}
@@ -331,7 +334,7 @@ export default function ProfilePage() {
         )}
 
         <p className="text-xs text-navy/50">
-          Changes to your name or designation require admin approval (they appear on your ID card). Other details save immediately.
+          Changes to your name require admin approval (it appears on your ID card). Other details, including designation, save immediately.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -367,7 +370,6 @@ export default function ProfilePage() {
             name="designation"
             defaultValue={member.designation ?? ""}
             placeholder="e.g. Volunteer Coordinator, Event Manager"
-            disabled={hasPendingRequest}
             className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400 disabled:bg-saffron-50 disabled:text-navy/60"
           />
         </div>
@@ -421,7 +423,7 @@ export default function ProfilePage() {
 
         {requestSubmitted && (
           <p className="text-sm text-forest bg-forest/10 rounded-md px-3 py-2">
-            Your details were saved and your name/designation change has been sent to the admin for approval.
+            Your details were saved and your name change has been sent to the admin for approval.
           </p>
         )}
 

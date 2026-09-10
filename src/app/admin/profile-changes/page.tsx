@@ -24,6 +24,17 @@ interface ChangeRequest {
   } | null;
 }
 
+function normalize(v: string | null | undefined): string {
+  return (v ?? "").trim();
+}
+
+// Members now save their designation directly, so a request only carries a
+// designation change if it was filed before that — requests filed since record
+// the same value in both columns.
+function changesDesignation(req: ChangeRequest): boolean {
+  return normalize(req.requested_designation) !== normalize(req.current_designation);
+}
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", {
     day: "numeric",
@@ -107,13 +118,18 @@ export default function ProfileChangesPage() {
 
     const { data: { user } } = await supabase.auth.getUser();
 
-    // 1. Apply the requested values to the member record
+    // 1. Apply the requested values to the member record. An older request's
+    // designation is applied only if the member hasn't saved a different one
+    // directly since filing it — the newer value is theirs to keep.
+    const applyDesignation =
+      changesDesignation(req) &&
+      normalize(req.member?.designation) === normalize(req.current_designation);
     const { error: memberError } = await supabase
       .from("members")
       .update({
         first_name: req.requested_first_name ?? req.member?.first_name ?? req.current_first_name,
         last_name: req.requested_last_name ?? req.member?.last_name ?? req.current_last_name,
-        designation: req.requested_designation,
+        ...(applyDesignation ? { designation: req.requested_designation } : {}),
       })
       .eq("id", req.member_id);
 
@@ -149,7 +165,7 @@ export default function ProfileChangesPage() {
     setMessage({
       type: "ok",
       text: `Approved: ${req.requested_first_name} ${req.requested_last_name}${
-        req.requested_designation ? ` — ${req.requested_designation}` : ""
+        applyDesignation && req.requested_designation ? ` — ${req.requested_designation}` : ""
       }`,
     });
     setProcessing(null);
@@ -198,8 +214,9 @@ export default function ProfileChangesPage() {
           Profile Change Requests
         </h1>
         <p className="mt-1 text-sm text-navy/60">
-          Members&apos; requests to change their name or designation. Approved
-          changes are applied to the member record and their ID card immediately.
+          Members&apos; requests to change their name. Approved changes are
+          applied to the member record and their ID card immediately.
+          Designations save directly and don&apos;t need approval.
         </p>
       </div>
 
@@ -224,7 +241,7 @@ export default function ProfileChangesPage() {
           <div className="text-4xl mb-3">✅</div>
           <p className="font-semibold text-navy">No pending requests</p>
           <p className="mt-1 text-sm text-navy/60">
-            All name/designation change requests have been reviewed.
+            All name change requests have been reviewed.
           </p>
         </div>
       ) : (
@@ -285,11 +302,13 @@ export default function ProfileChangesPage() {
                     current={m?.last_name ?? req.current_last_name}
                     requested={req.requested_last_name}
                   />
-                  <Diff
-                    label="Designation"
-                    current={m?.designation ?? req.current_designation}
-                    requested={req.requested_designation}
-                  />
+                  {changesDesignation(req) && (
+                    <Diff
+                      label="Designation"
+                      current={req.current_designation}
+                      requested={req.requested_designation}
+                    />
+                  )}
                 </div>
 
                 {/* Actions */}
