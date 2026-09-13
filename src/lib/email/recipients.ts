@@ -31,3 +31,44 @@ export async function adminNotificationAddress(
 
   return data?.primary_email?.trim() || null;
 }
+
+/**
+ * Public URL of the National President's photograph, for the signature block of
+ * the welcome message.
+ *
+ * Read from his member record rather than a constant, because avatar uploads
+ * write a new path every time and delete the one they replace — a hardcoded
+ * storage URL would break the first time he changes his photo. The avatars
+ * bucket is public (migration 016), so the URL needs no signing and a mail
+ * client can fetch it.
+ *
+ * Identified the way the rest of the app does it: the member whose designation
+ * is exactly "president". Matching is case-insensitive and whitespace-tolerant,
+ * since designations are free text typed by members — the same reason
+ * DESIGNATION_RANK in member-order.ts normalises before comparing. The wildcard
+ * query pulls the vice-presidents and state presidents too, so the exact match
+ * happens here.
+ *
+ * Returns null when there is no such member or no photo, and the caller simply
+ * leaves the photograph out.
+ */
+export async function presidentPhotoUrl(
+  supabase: SupabaseClient
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("members")
+    .select("designation, avatar_url")
+    .ilike("designation", "%president%")
+    .not("avatar_url", "is", null);
+
+  if (error) {
+    console.error("[email] Could not read the president's photo:", error);
+    return null;
+  }
+
+  const president = (data ?? []).find(
+    (m) => (m.designation ?? "").trim().toLowerCase() === "president"
+  );
+
+  return president?.avatar_url ?? null;
+}

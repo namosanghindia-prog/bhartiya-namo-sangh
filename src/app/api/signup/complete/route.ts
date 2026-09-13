@@ -7,7 +7,10 @@ import {
   uploadAvatar,
 } from "@/lib/avatar";
 import { sendEmail } from "@/lib/email/send";
-import { adminNotificationAddress } from "@/lib/email/recipients";
+import {
+  adminNotificationAddress,
+  presidentPhotoUrl,
+} from "@/lib/email/recipients";
 import { newApplicationAdminEmail, welcomeEmail } from "@/lib/email/templates";
 
 /**
@@ -189,10 +192,10 @@ export async function POST(request: NextRequest) {
   // Confirms the application landed. This is the only mail signup sends now
   // that Supabase no longer has a confirmation link to deliver, so a member who
   // hears nothing has genuinely not registered. Never fails the request.
-  const welcome = welcomeEmail({
-    firstName: member.first_name,
-    lastName: member.last_name,
-  });
+  const welcome = welcomeEmail(
+    { firstName: member.first_name, lastName: member.last_name },
+    await presidentPhotoUrl(supabaseAdmin)
+  );
 
   const mail = await sendEmail({
     to: email,

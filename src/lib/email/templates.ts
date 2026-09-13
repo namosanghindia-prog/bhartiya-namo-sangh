@@ -137,7 +137,10 @@ function fullName(member: MemberSummary): string {
  * signatory is unambiguous to anyone reading it in transliteration, not as a
  * translation of the message.
  */
-export function welcomeEmail(member: MemberSummary): EmailContent {
+export function welcomeEmail(
+  member: MemberSummary,
+  presidentPhoto?: string | null
+): EmailContent {
   const name = fullName(member);
 
   return {
@@ -183,7 +186,21 @@ export function welcomeEmail(member: MemberSummary): EmailContent {
 
       <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0;border-top:1px solid ${BRAND.border};width:100%;">
         <tr>
-          <td style="padding:18px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:${BRAND.navy};">
+          ${
+            presidentPhoto
+              ? `<td width="88" valign="top" style="padding:18px 12px 0 0;">
+                   <!-- Width fixed, height left to follow. His photograph is
+                        portrait (roughly 5:6), and a fixed square box would
+                        squash it in Gmail and Outlook, neither of which honours
+                        object-fit. Rounded rather than circular for the same
+                        reason: a circle on a non-square image needs a crop. -->
+                   <img src="${presidentPhoto}" width="76"
+                        alt="${SIGNATORY.name}"
+                        style="display:block;width:76px;height:auto;border:1px solid ${BRAND.border};border-radius:6px;">
+                 </td>`
+              : ""
+          }
+          <td valign="top" style="padding:18px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:${BRAND.navy};">
             <div style="color:${BRAND.muted};font-size:13px;">सादर,</div>
             <!-- Absolute URL, like the masthead logo: relative paths never
                  resolve in a mail client. Alt text carries the signatory for
