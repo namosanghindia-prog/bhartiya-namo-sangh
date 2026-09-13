@@ -9,7 +9,7 @@ import {
 import { sendEmail } from "@/lib/email/send";
 import {
   adminNotificationAddress,
-  presidentPhotoUrl,
+  presidentPhotoAttachment,
 } from "@/lib/email/recipients";
 import { newApplicationAdminEmail, welcomeEmail } from "@/lib/email/templates";
 
@@ -192,9 +192,13 @@ export async function POST(request: NextRequest) {
   // Confirms the application landed. This is the only mail signup sends now
   // that Supabase no longer has a confirmation link to deliver, so a member who
   // hears nothing has genuinely not registered. Never fails the request.
+  // Embedded rather than linked, so the letter renders whatever the recipient's
+  // client does about remote images.
+  const presidentPhoto = await presidentPhotoAttachment(supabaseAdmin);
+
   const welcome = welcomeEmail(
     { firstName: member.first_name, lastName: member.last_name },
-    await presidentPhotoUrl(supabaseAdmin)
+    Boolean(presidentPhoto)
   );
 
   const mail = await sendEmail({
@@ -202,6 +206,9 @@ export async function POST(request: NextRequest) {
     subject: welcome.subject,
     html: welcome.html,
     text: welcome.text,
+    attachments: presidentPhoto
+      ? [{ ...presidentPhoto, contentId: "bnms-president" }]
+      : undefined,
   });
 
   // And tell the admins there is something in the queue. Nothing about this

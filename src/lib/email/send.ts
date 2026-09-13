@@ -1,4 +1,6 @@
 import "server-only";
+import { promises as fs } from "node:fs";
+import path from "node:path";
 import { Resend } from "resend";
 
 /**
@@ -21,6 +23,61 @@ import { Resend } from "resend";
 export interface EmailAttachment {
   filename: string;
   content: Buffer;
+  /**
+   * Set to embed the image in the message body, referenced from the HTML as
+   * `cid:<contentId>` instead of an https URL.
+   */
+  contentId?: string;
+}
+
+/**
+ * Images shipped inside the message rather than fetched from the web.
+ *
+ * The masthead logo used to be an https URL and arrived as a broken-image icon
+ * for a real recipient, while the file returned 200 to everything reachable from
+ * here — curl, a Gmail image-proxy user agent, and no user agent at all. A
+ * remote image in an email depends on the client, its proxy and the network
+ * between them all cooperating, and when they do not there is nothing in the
+ * markup to fix. Embedded images have none of those dependencies, and most
+ * clients show them without the "display images" prompt that remote ones face.
+ *
+ * The cost is message size, which is why the logo is a 128px copy rather than
+ * the 512px original: 29KB instead of 310KB for something displayed at 72px.
+ */
+const INLINE_IMAGES: Record<string, { file: string }> = {
+  "bnms-logo": { file: "logo-email.png" },
+  "bnms-signature": { file: "signature-president.png" },
+};
+
+/** Read once per process — these files never change between deploys. */
+const fileCache = new Map<string, Buffer | null>();
+
+async function readPublicFile(name: string): Promise<Buffer | null> {
+  const cached = fileCache.get(name);
+  if (cached !== undefined) return cached;
+
+  try {
+    const buf = await fs.readFile(path.join(process.cwd(), "public", name));
+    fileCache.set(name, buf);
+    return buf;
+  } catch (err) {
+    console.error(`[email] Could not read public/${name} to embed it:`, err);
+    fileCache.set(name, null);
+    return null;
+  }
+}
+
+/** Attachments for whichever cid: references this particular HTML uses. */
+async function inlineImagesFor(html: string): Promise<EmailAttachment[]> {
+  const out: EmailAttachment[] = [];
+
+  for (const [contentId, spec] of Object.entries(INLINE_IMAGES)) {
+    if (!html.includes(`cid:${contentId}`)) continue;
+    const content = await readPublicFile(spec.file);
+    if (content) out.push({ filename: spec.file, content, contentId });
+  }
+
+  return out;
 }
 
 export interface SendEmailOptions {
@@ -87,6 +144,15 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendResult> 
   try {
     const resend = new Resend(apiKey);
 
+    const attachments = [
+      ...(await inlineImagesFor(options.html)),
+      ...(options.attachments ?? []),
+    ].map((a) => ({
+      filename: a.filename,
+      content: a.content.toString("base64"),
+      ...(a.contentId ? { content_id: a.contentId } : {}),
+    }));
+
     const { data, error } = await resend.emails.send({
       from: fromAddress(),
       to: [options.to],
@@ -94,10 +160,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendResult> 
       html: options.html,
       text: options.text,
       replyTo: options.replyTo,
-      attachments: options.attachments?.map((a) => ({
-        filename: a.filename,
-        content: a.content.toString("base64"),
-      })),
+      attachments: attachments.length > 0 ? attachments : undefined,
     });
 
     if (error) {

@@ -25,18 +25,6 @@ const BRAND = {
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.bhartiyanamosangh.com";
 
-/**
- * Origin for images *inside* an email.
- *
- * The apex 308-redirects to www. A browser follows that without noticing, so
- * SITE_URL is fine for links, but an image is fetched by the mail client or its
- * proxy and not all of them follow a redirect — the picture just fails to
- * appear. So images are addressed at the canonical host directly.
- */
-const ASSET_URL = SITE_URL.replace(/\/+$/, "").replace(
-  /^https:\/\/(?!www\.)/,
-  "https://www."
-);
 
 function escapeHtml(value: string): string {
   return value
@@ -79,13 +67,14 @@ function shell(headingHi: string, headingEn: string, body: string): string {
                    among the least reliable things a mail client will do — so the
                    cell carries the colour and the image stays a plainly sized
                    <img>, which every client understands.
-                   Absolute URL because an email is read outside the site, and
-                   the alt text carries the name where images are blocked. -->
+                   The image travels inside the message (see INLINE_IMAGES in
+                   send.ts) rather than being fetched over https, and the alt
+                   text still carries the name if a client hides it. -->
               <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto 12px auto;">
                 <tr>
                   <td width="84" height="84" align="center" valign="middle"
                       style="width:84px;height:84px;background-color:#ffffff;border-radius:42px;">
-                    <img src="${ASSET_URL}/logo.png" width="72" height="72"
+                    <img src="cid:bnms-logo" width="72" height="72"
                          alt="भारतीय नमो संघ"
                          style="display:block;width:72px;height:72px;border:0;outline:none;text-decoration:none;">
                   </td>
@@ -149,7 +138,13 @@ function fullName(member: MemberSummary): string {
  */
 export function welcomeEmail(
   member: MemberSummary,
-  presidentPhoto?: string | null
+  /**
+   * Whether the caller is attaching his photograph as cid:bnms-president. The
+   * photo is not a file in public/ — it comes from his member record — so the
+   * route fetches it and passes it as an attachment, and this says whether the
+   * markup should reference it.
+   */
+  presidentPhoto?: boolean
 ): EmailContent {
   const name = fullName(member);
 
@@ -204,7 +199,7 @@ export function welcomeEmail(
                         squash it in Gmail and Outlook, neither of which honours
                         object-fit. Rounded rather than circular for the same
                         reason: a circle on a non-square image needs a crop. -->
-                   <img src="${presidentPhoto}" width="76"
+                   <img src="cid:bnms-president" width="76"
                         alt="${SIGNATORY.name}"
                         style="display:block;width:76px;height:auto;border:1px solid ${BRAND.border};border-radius:6px;">
                  </td>`
@@ -215,7 +210,7 @@ export function welcomeEmail(
             <!-- Absolute URL, like the masthead logo: relative paths never
                  resolve in a mail client. Alt text carries the signatory for
                  the many clients that block remote images by default. -->
-            <img src="${ASSET_URL}/signature-president.png" width="170" height="42"
+            <img src="cid:bnms-signature" width="170" height="42"
                  alt="${SIGNATORY.name} के हस्ताक्षर"
                  style="display:block;width:170px;height:auto;max-width:100%;margin:8px 0 2px 0;border:0;outline:none;text-decoration:none;">
             <div style="font-family:Georgia,'Times New Roman',serif;font-size:17px;font-weight:bold;color:${BRAND.navy};margin-top:6px;">

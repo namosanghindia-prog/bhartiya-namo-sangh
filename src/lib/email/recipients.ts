@@ -72,3 +72,41 @@ export async function presidentPhotoUrl(
 
   return president?.avatar_url ?? null;
 }
+
+/**
+ * His photograph as bytes, ready to embed as cid:bnms-president.
+ *
+ * Fetched rather than linked for the same reason the logo is: a remote image in
+ * an email is at the mercy of the client and its proxy, and one arrived as a
+ * broken icon for a real recipient. Unlike the logo this one is not a file in
+ * public/ — it lives on his member record — so it is fetched here at send time.
+ */
+export async function presidentPhotoAttachment(
+  supabase: SupabaseClient
+): Promise<{ filename: string; content: Buffer } | null> {
+  const url = await presidentPhotoUrl(supabase);
+  if (!url) return null;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.error(`[email] President photo fetch failed: HTTP ${res.status}`);
+      return null;
+    }
+
+    const type = res.headers.get("content-type") ?? "";
+    if (!type.startsWith("image/")) {
+      console.error(`[email] President photo is not an image (${type})`);
+      return null;
+    }
+
+    const extension = type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
+    return {
+      filename: `president.${extension}`,
+      content: Buffer.from(await res.arrayBuffer()),
+    };
+  } catch (err) {
+    console.error("[email] Could not fetch the president's photo:", err);
+    return null;
+  }
+}
