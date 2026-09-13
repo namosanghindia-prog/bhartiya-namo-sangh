@@ -45,7 +45,21 @@ function button(label: string, href: string): string {
     </table>`;
 }
 
-/** Wraps body HTML in the masthead, footer and the width mail clients respect. */
+/**
+ * Wraps body HTML in the masthead, footer and the width mail clients respect.
+ *
+ * No HTML comments in anything this returns. One of them contained the text
+ * "<img>", and the first message a recipient received carrying it arrived with
+ * no body text at all — a sanitiser that mishandles comment boundaries sees the
+ * "<" inside and can swallow the markup after it. Notes about the markup live
+ * here in TypeScript instead, where they cost the recipient nothing.
+ *
+ * The white badge behind the logo is a table cell rather than padding plus
+ * border-radius on the <img>: Outlook renders through Word and drops both, and a
+ * rounded background asked of an image is unreliable even where it does not. The
+ * logo itself travels inside the message — see INLINE_IMAGES in send.ts — so the
+ * alt text is what shows only if a client hides embedded images too.
+ */
 function shell(headingHi: string, headingEn: string, body: string): string {
   return `<!doctype html>
 <html lang="en">
@@ -61,15 +75,6 @@ function shell(headingHi: string, headingEn: string, body: string): string {
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background-color:#ffffff;border:1px solid ${BRAND.border};border-radius:10px;overflow:hidden;">
           <tr>
             <td style="background:${BRAND.saffron};padding:24px;text-align:center;">
-              <!-- The white badge is a table cell, not padding plus
-                   border-radius on the <img>. Outlook renders through Word and
-                   drops both, and a rounded background asked of an image is
-                   among the least reliable things a mail client will do — so the
-                   cell carries the colour and the image stays a plainly sized
-                   <img>, which every client understands.
-                   The image travels inside the message (see INLINE_IMAGES in
-                   send.ts) rather than being fetched over https, and the alt
-                   text still carries the name if a client hides it. -->
               <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto 12px auto;">
                 <tr>
                   <td width="84" height="84" align="center" valign="middle"
@@ -136,6 +141,9 @@ function fullName(member: MemberSummary): string {
  * signatory is unambiguous to anyone reading it in transliteration, not as a
  * translation of the message.
  */
+// His photograph is portrait, roughly 5:6. Its cell fixes the width and lets the
+// height follow: a fixed square box would squash it in Gmail and Outlook, neither
+// of which honours object-fit, and a circular crop needs a square source.
 export function welcomeEmail(
   member: MemberSummary,
   /**
@@ -194,11 +202,6 @@ export function welcomeEmail(
           ${
             presidentPhoto
               ? `<td width="88" valign="top" style="padding:18px 12px 0 0;">
-                   <!-- Width fixed, height left to follow. His photograph is
-                        portrait (roughly 5:6), and a fixed square box would
-                        squash it in Gmail and Outlook, neither of which honours
-                        object-fit. Rounded rather than circular for the same
-                        reason: a circle on a non-square image needs a crop. -->
                    <img src="cid:bnms-president" width="76"
                         alt="${SIGNATORY.name}"
                         style="display:block;width:76px;height:auto;border:1px solid ${BRAND.border};border-radius:6px;">
@@ -207,9 +210,6 @@ export function welcomeEmail(
           }
           <td valign="top" style="padding:18px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:${BRAND.navy};">
             <div style="color:${BRAND.muted};font-size:13px;">सादर,</div>
-            <!-- Absolute URL, like the masthead logo: relative paths never
-                 resolve in a mail client. Alt text carries the signatory for
-                 the many clients that block remote images by default. -->
             <img src="cid:bnms-signature" width="170" height="42"
                  alt="${SIGNATORY.name} के हस्ताक्षर"
                  style="display:block;width:170px;height:auto;max-width:100%;margin:8px 0 2px 0;border:0;outline:none;text-decoration:none;">
