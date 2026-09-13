@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback } from "react";
 import { emailDocumentToMember } from "@/lib/email-document";
+import { SIGNATORY } from "@/lib/signatory";
 import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 import { toPng } from "html-to-image";
@@ -737,6 +738,27 @@ export default function MembershipCard({
                         <span className="line-clamp-2">{address ?? "—"}</span>
                       </li>
                     </ul>
+                  </div>
+
+                  {/* Authorised signatory. The back face carried no signature
+                      block at all before this; the card now attests the same way
+                      the appointment letter does. Kept small — at 400px card
+                      width everything here is upscaled 2.53× for print, so 17px
+                      of ink is about 3.5mm on the finished card. */}
+                  <div className="mt-[6px] flex flex-col items-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={SIGNATORY.image}
+                      alt=""
+                      className="h-[17px] w-[70px] object-contain"
+                    />
+                    <div className="h-[0.5px] w-[70px] bg-[#0a1929]/35" />
+                    <p className="mt-[1.5px] text-[5.5px] font-bold leading-none text-saffron-800">
+                      {SIGNATORY.name}
+                    </p>
+                    <p className="mt-[1px] text-[5px] leading-none text-[#0a1929]/70">
+                      {SIGNATORY.role}
+                    </p>
                   </div>
 
                   {/* Social row */}

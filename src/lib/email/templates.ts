@@ -172,6 +172,12 @@ export function welcomeEmail(member: MemberSummary): EmailContent {
         <tr>
           <td style="padding:18px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:${BRAND.navy};">
             <div style="color:${BRAND.muted};font-size:13px;">सादर,</div>
+            <!-- Absolute URL, like the masthead logo: relative paths never
+                 resolve in a mail client. Alt text carries the signatory for
+                 the many clients that block remote images by default. -->
+            <img src="${SITE_URL}/signature-president.png" width="170" height="42"
+                 alt="${SIGNATORY.name} के हस्ताक्षर"
+                 style="display:block;width:170px;height:auto;max-width:100%;margin:8px 0 2px 0;border:0;outline:none;text-decoration:none;">
             <div style="font-family:Georgia,'Times New Roman',serif;font-size:17px;font-weight:bold;color:${BRAND.navy};margin-top:6px;">
               ${SIGNATORY.name}
             </div>

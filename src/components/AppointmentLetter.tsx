@@ -477,7 +477,7 @@ function SignatureImage({ src, alt }: { src: string; alt: string }) {
   }, []);
 
   if (failed) {
-    return <div className="h-[60px] w-[190px]" aria-hidden="true" />;
+    return <div className="h-[48px] w-[190px]" aria-hidden="true" />;
   }
 
   return (
@@ -486,7 +486,9 @@ function SignatureImage({ src, alt }: { src: string; alt: string }) {
       ref={imgRef}
       src={src}
       alt={alt}
-      className="h-[60px] w-[190px] object-contain object-left"
+      // 190 × 48 is the signature's own 4:1 ratio, so object-contain leaves no
+      // vertical slack and the ink sits directly on the rule below it.
+      className="h-[48px] w-[190px] object-contain object-left"
       onError={() => setFailed(true)}
     />
   );
