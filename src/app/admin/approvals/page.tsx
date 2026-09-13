@@ -224,7 +224,9 @@ export default function ApprovalsPage() {
                       </p>
                     </div>
                     <div>
-                      <span className="text-navy/60">Father&apos;s / Husband&apos;s Name:</span>
+                      <span className="text-navy/60">
+                        Father&apos;s / Mother&apos;s / Husband&apos;s Name:
+                      </span>
                       <p className="font-medium text-navy">
                         {member.father_name || "—"}
                       </p>

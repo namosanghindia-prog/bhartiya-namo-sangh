@@ -459,8 +459,10 @@ export default function SignupPage() {
             htmlFor="fatherName"
             className="block text-sm font-medium text-navy/80 mb-1"
           >
-            <span className="block">पिता/पति का नाम</span>
-            <span className="text-xs text-navy/60">Father&apos;s / Husband&apos;s Name</span>
+            <span className="block">पिता/माता/पति का नाम</span>
+            <span className="text-xs text-navy/60">
+              Father&apos;s / Mother&apos;s / Husband&apos;s Name
+            </span>
           </label>
           <input
             id="fatherName"
