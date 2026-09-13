@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { flushPendingAvatar } from "@/lib/pending-avatar";
 import type { Member } from "@/lib/supabase/types";
 
 const NAV_ITEMS = [
@@ -40,6 +41,16 @@ export default function DashboardLayout({
           .eq("id", user.id)
           .single();
         if (data) setMember(data as Member);
+
+        // Last resort for a signup photo that never reached storage: a member
+        // who lands here without one, on the device they signed up from, gets
+        // it uploaded now. No-op for everyone else.
+        if (data && !data.avatar_url) {
+          const publicUrl = await flushPendingAvatar(supabase, user.id);
+          if (publicUrl) {
+            setMember({ ...(data as Member), avatar_url: publicUrl });
+          }
+        }
       }
     }
     loadMember();

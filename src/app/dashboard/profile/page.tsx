@@ -2,7 +2,14 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { uploadAvatar, removeSupersededAvatars } from "@/lib/avatar";
+import {
+  AVATAR_ACCEPTED_TYPES,
+  AVATAR_MAX_BYTES,
+  AVATAR_MAX_MB,
+  uploadAvatar,
+  removeSupersededAvatars,
+} from "@/lib/avatar";
+import { shrinkImage } from "@/lib/image";
 import type { Member, Branch } from "@/lib/supabase/types";
 
 interface ProfileChangeRequest {
@@ -84,6 +91,8 @@ export default function ProfilePage() {
       phone: formData.get("phone") as string,
       branch_id: formData.get("branch") as string || null,
       address: formData.get("address") as string || null,
+      city: normalize(formData.get("city") as string) || null,
+      state: normalize(formData.get("state") as string) || null,
       designation: normalize(formData.get("designation") as string) || null,
     };
 
@@ -159,14 +168,22 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file || !member) return;
 
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
+    if (!AVATAR_ACCEPTED_TYPES.includes(file.type)) {
       setError("Please select a JPG, PNG, or WebP image");
+      window.alert("Please select a JPG, PNG, or WebP image.");
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      setError("Image must be less than 2MB");
+    if (file.size > AVATAR_MAX_BYTES) {
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+      setError(
+        `Photo is ${sizeMb}MB — please choose an image under ${AVATAR_MAX_MB}MB`
+      );
+      window.alert(
+        `यह फ़ोटो ${sizeMb}MB की है। अधिकतम ${AVATAR_MAX_MB}MB की फ़ोटो ही अपलोड करें।\n\n` +
+          `This photo is ${sizeMb}MB. Please choose an image under ${AVATAR_MAX_MB}MB.`
+      );
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
@@ -174,12 +191,13 @@ export default function ProfilePage() {
     setError(null);
 
     const supabase = createClient();
+    const { blob, contentType } = await shrinkImage(file);
 
     const { publicUrl, error: uploadError } = await uploadAvatar(
       supabase,
       member.id,
-      file,
-      file.type
+      blob,
+      contentType
     );
 
     if (uploadError || !publicUrl) {
@@ -287,7 +305,9 @@ export default function ProfilePage() {
             >
               {uploading ? "Uploading..." : member.avatar_url ? "Change Photo" : "Upload Photo"}
             </button>
-            <span className="text-xs text-navy/50">JPG, PNG or WebP. Max 2MB.</span>
+            <span className="text-xs text-navy/50">
+              JPG, PNG or WebP. Max {AVATAR_MAX_MB}MB.
+            </span>
           </div>
           {!member.avatar_url && (
             <p className="mt-2 text-xs text-red-600">
@@ -391,6 +411,29 @@ export default function ProfilePage() {
             placeholder="Your full address"
             className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
           />
+        </div>
+
+        {/* District and state come in at signup. They were not editable here,
+            so a member who saw them missing or wrong had no way to fix them. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm text-navy/70 mb-1">District</label>
+            <input
+              name="city"
+              defaultValue={member.city ?? ""}
+              placeholder="Your district"
+              className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-navy/70 mb-1">State</label>
+            <input
+              name="state"
+              defaultValue={member.state ?? ""}
+              placeholder="Your state"
+              className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+            />
+          </div>
         </div>
 
         <div>

@@ -2,7 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const AVATAR_BUCKET = "avatars";
 export const AVATAR_ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-export const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+export const AVATAR_MAX_BYTES = 3 * 1024 * 1024;
+export const AVATAR_MAX_MB = 3;
 
 function extensionFor(contentType: string): string {
   const sub = contentType.split("/")[1] || "jpg";

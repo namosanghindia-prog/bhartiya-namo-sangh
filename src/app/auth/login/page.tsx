@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { uploadAvatar } from "@/lib/avatar";
+import { flushPendingAvatar } from "@/lib/pending-avatar";
 
 function LoginForm() {
   const router = useRouter();
@@ -54,58 +54,9 @@ function LoginForm() {
     }
 
     if (signInData?.user) {
-      const pendingAvatar = sessionStorage.getItem("pending_avatar");
-      const pendingAvatarType = sessionStorage.getItem("pending_avatar_type");
-
-      console.log("[login] Checking for pending avatar:", {
-        hasPendingAvatar: !!pendingAvatar,
-        hasPendingAvatarType: !!pendingAvatarType,
-        avatarLength: pendingAvatar?.length,
-      });
-
-      if (pendingAvatar && pendingAvatarType) {
-        try {
-          console.log("[login] Processing pending avatar upload...");
-          const base64Data = pendingAvatar.split(",")[1];
-          const byteCharacters = atob(base64Data);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
-          const byteArray = new Uint8Array(byteNumbers);
-          const blob = new Blob([byteArray], { type: pendingAvatarType });
-
-          console.log("[login] Uploading pending avatar to storage...");
-          const { publicUrl, error: uploadError } = await uploadAvatar(
-            supabase,
-            signInData.user.id,
-            blob,
-            pendingAvatarType
-          );
-
-          if (uploadError || !publicUrl) {
-            console.error("[login] Avatar upload failed:", uploadError);
-          } else {
-            console.log("[login] Public URL:", publicUrl);
-            const { error: updateError } = await supabase
-              .from("members")
-              .update({ avatar_url: publicUrl })
-              .eq("id", signInData.user.id);
-
-            if (updateError) {
-              console.error("[login] Failed to update member avatar_url:", updateError);
-            } else {
-              console.log("[login] Member avatar_url updated successfully");
-            }
-          }
-
-          sessionStorage.removeItem("pending_avatar");
-          sessionStorage.removeItem("pending_avatar_type");
-          console.log("[login] Cleared pending avatar from sessionStorage");
-        } catch (err) {
-          console.error("[login] Failed to upload pending avatar:", err);
-        }
-      }
+      // Anyone who signed up before /api/signup/complete existed, or whose
+      // photo did not get through then, still has it stashed on this device.
+      await flushPendingAvatar(supabase, signInData.user.id);
 
       // Check for VIP coupon code in user metadata
       const vipCouponCode = signInData.user.user_metadata?.vip_coupon_code;

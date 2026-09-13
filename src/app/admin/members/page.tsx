@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   AVATAR_ACCEPTED_TYPES,
   AVATAR_MAX_BYTES,
+  AVATAR_MAX_MB,
   removeSupersededAvatars,
   uploadAvatar,
 } from "@/lib/avatar";
@@ -182,7 +183,7 @@ export default function AdminMembersPage() {
     }
 
     if (file.size > AVATAR_MAX_BYTES) {
-      setPhotoError("Image must be less than 2MB");
+      setPhotoError(`Image must be less than ${AVATAR_MAX_MB}MB`);
       return;
     }
 
@@ -582,7 +583,7 @@ export default function AdminMembersPage() {
                             : "Upload Photo"}
                         </button>
                         <p className="mt-1 text-xs text-navy/50">
-                          JPG, PNG or WebP. Max 2MB. Saves straight away.
+                          JPG, PNG or WebP. Max {AVATAR_MAX_MB}MB. Saves straight away.
                         </p>
                       </div>
                     </div>

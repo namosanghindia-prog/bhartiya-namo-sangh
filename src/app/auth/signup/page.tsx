@@ -5,6 +5,13 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Branch } from "@/lib/supabase/types";
+import {
+  AVATAR_ACCEPTED_TYPES,
+  AVATAR_MAX_BYTES,
+  AVATAR_MAX_MB,
+} from "@/lib/avatar";
+import { blobToDataUrl, shrinkImage } from "@/lib/image";
+import { storePendingAvatar, clearPendingAvatar } from "@/lib/pending-avatar";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -19,6 +26,11 @@ export default function SignupPage() {
   const [membershipType, setMembershipType] = useState<"volunteer" | "normal" | "premium" | "lifetime">("volunteer");
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  // Kept alongside the preview so the photo can be uploaded server-side the
+  // moment the account exists, instead of waiting for a later login.
+  const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
+  const [photoType, setPhotoType] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
   const [showVipCode, setShowVipCode] = useState(false);
   const [vipCode, setVipCode] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -53,36 +65,106 @@ export default function SignupPage() {
     fetchBranches();
   }, []);
 
-  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+  function clearPhoto() {
+    setPhotoPreview(null);
+    setPhotoBlob(null);
+    setPhotoType(null);
+    clearPendingAvatar();
+  }
+
+  async function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     setPhotoError(null);
 
-    if (!file) {
-      setPhotoPreview(null);
-      return;
-    }
+    // Selecting nothing (cancelling the picker) must not wipe a photo that was
+    // already chosen.
+    if (!file) return;
 
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
+    if (!AVATAR_ACCEPTED_TYPES.includes(file.type)) {
+      clearPhoto();
       setPhotoError("Please select a JPG, PNG, or WebP image");
-      setPhotoPreview(null);
+      window.alert("Please select a JPG, PNG, or WebP image.");
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      setPhotoError("Image must be less than 2MB");
-      setPhotoPreview(null);
+    if (file.size > AVATAR_MAX_BYTES) {
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+      const message =
+        `यह फ़ोटो ${sizeMb}MB की है। अधिकतम ${AVATAR_MAX_MB}MB की फ़ोटो ही अपलोड करें।\n\n` +
+        `This photo is ${sizeMb}MB. Please choose an image under ${AVATAR_MAX_MB}MB.`;
+      clearPhoto();
+      setPhotoError(
+        `Photo is ${sizeMb}MB — please choose an image under ${AVATAR_MAX_MB}MB`
+      );
+      window.alert(message);
+      // Let the same file be picked again after it has been resized.
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
+    setPhotoBusy(true);
+    try {
+      // Camera photos are far larger than an avatar needs; shrinking here keeps
+      // the upload quick and the local fallback copy inside its quota.
+      const { blob, contentType } = await shrinkImage(file);
+      const dataUrl = await blobToDataUrl(blob);
+
+      setPhotoBlob(blob);
+      setPhotoType(contentType);
       setPhotoPreview(dataUrl);
-      sessionStorage.setItem("pending_avatar", dataUrl);
-      sessionStorage.setItem("pending_avatar_type", file.type);
-    };
-    reader.readAsDataURL(file);
+      storePendingAvatar(dataUrl, contentType);
+    } catch (err) {
+      console.error("[signup] Could not read the selected photo:", err);
+      clearPhoto();
+      setPhotoError("Could not read that image. Please try another photo.");
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
+  async function saveSignupDetails(
+    userId: string,
+    details: {
+      email: string;
+      fatherName: string;
+      address: string;
+      city: string;
+      state: string;
+    }
+  ) {
+    try {
+      const payload = new FormData();
+      payload.set("userId", userId);
+      payload.set("email", details.email);
+      payload.set("fatherName", details.fatherName ?? "");
+      payload.set("address", details.address ?? "");
+      payload.set("city", details.city ?? "");
+      payload.set("state", details.state ?? "");
+
+      if (photoBlob && photoType) {
+        payload.set("photo", photoBlob, "avatar");
+      }
+
+      const res = await fetch("/api/signup/complete", {
+        method: "POST",
+        body: payload,
+      });
+
+      if (!res.ok) {
+        console.error("[signup] Could not save details:", await res.text());
+        return;
+      }
+
+      const result = await res.json();
+      if (result?.photoSaved) {
+        // Safely stored against the account; no need to keep the local copy.
+        clearPendingAvatar();
+      } else if (result?.photoError) {
+        console.error("[signup] Photo rejected by the server:", result.photoError);
+      }
+    } catch (err) {
+      console.error("[signup] Could not reach /api/signup/complete:", err);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -148,9 +230,8 @@ export default function SignupPage() {
       },
     });
 
-    setSubmitting(false);
-
     if (signUpError) {
+      setSubmitting(false);
       const msg = signUpError.message.toLowerCase();
       if (
         msg.includes("already registered") ||
@@ -174,10 +255,27 @@ export default function SignupPage() {
       signUpData?.user &&
       (!signUpData.user.identities || signUpData.user.identities.length === 0)
     ) {
+      setSubmitting(false);
       setError("EMAIL_EXISTS");
       return;
     }
 
+    // signUp issues no session while email confirmation is on, so the browser
+    // cannot write the photo or the address itself. Hand both to the server,
+    // which does it with the service role. Failure is not fatal: the photo is
+    // still stashed locally and retried at first login, and the member can fill
+    // the address in from their profile page.
+    if (signUpData?.user) {
+      await saveSignupDetails(signUpData.user.id, {
+        email,
+        fatherName,
+        address,
+        city,
+        state,
+      });
+    }
+
+    setSubmitting(false);
     setSuccess(true);
   }
 
@@ -249,15 +347,22 @@ export default function SignupPage() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
+                disabled={photoBusy}
+                className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60 ${
                   photoPreview
                     ? "border-saffron-300 text-navy hover:bg-saffron-100"
                     : "border-red-300 bg-red-50 text-red-700 hover:bg-red-100"
                 }`}
               >
-                {photoPreview ? "Change Photo" : "Upload Photo"}
+                {photoBusy
+                  ? "Processing..."
+                  : photoPreview
+                  ? "Change Photo"
+                  : "Upload Photo"}
               </button>
-              <p className="mt-1 text-xs text-navy/50">JPG, PNG or WebP. Max 2MB.</p>
+              <p className="mt-1 text-xs text-navy/50">
+                JPG, PNG or WebP. Max {AVATAR_MAX_MB}MB.
+              </p>
               {photoError && (
                 <p className="mt-1 text-xs text-red-600">{photoError}</p>
               )}
@@ -642,7 +747,7 @@ export default function SignupPage() {
 
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || photoBusy}
           className="w-full rounded-md bg-saffron-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-saffron-800 transition-colors disabled:opacity-60"
         >
           {submitting ? "Creating account..." : "Create Account / खाता बनाएं"}
