@@ -267,3 +267,275 @@ Receipt number: ${receiptNumber}
 Your official receipt is attached to this email. Please retain it for your records.`,
   };
 }
+
+/**
+ * Application rejected.
+ *
+ * The admin screen offers no reason field, so there is nothing specific to
+ * quote — the message stays factual and points them at a human rather than
+ * inventing a cause.
+ */
+export function applicationRejectedEmail(member: MemberSummary): EmailContent {
+  const name = fullName(member);
+
+  return {
+    subject: "About your Bhartiya Namo Sangh membership application",
+    html: shell(
+      "आपके आवेदन के संबंध में",
+      "About your membership application",
+      `
+      <p style="margin:0 0 14px 0;">नमस्ते ${escapeHtml(name)},</p>
+      <p style="margin:0 0 14px 0;">
+        After review, we are not able to approve your membership application at
+        this time.
+      </p>
+      <p style="margin:0 0 14px 0;">
+        If you believe this is a mistake, or you would like to know more, please
+        get in touch through the contact page and our team will look at it again.
+      </p>
+      ${button("Contact us", `${SITE_URL}/contact`)}
+      <p style="margin:0;color:${BRAND.muted};font-size:13px;">
+        किसी भी प्रश्न के लिए कृपया हमसे संपर्क करें।
+      </p>`
+    ),
+    text: `नमस्ते ${name},
+
+After review, we are not able to approve your membership application at this time.
+
+If you believe this is a mistake, or would like to know more, please contact us: ${SITE_URL}/contact`,
+  };
+}
+
+/** Physical ID card order moving along the printing and delivery flow. */
+export function idCardStatusEmail(
+  member: MemberSummary,
+  status: string,
+  deliveryAddress: string | null
+): EmailContent {
+  const name = fullName(member);
+
+  const copy: Record<string, { hi: string; en: string; body: string }> = {
+    paid: {
+      hi: "भुगतान प्राप्त हुआ",
+      en: "Payment received for your ID card",
+      body: "We have received the payment for your membership card. It now goes into the printing queue.",
+    },
+    printing: {
+      hi: "आपका कार्ड प्रिंट हो रहा है",
+      en: "Your ID card is being printed",
+      body: "Your membership card is being printed. We will email you again once it is dispatched.",
+    },
+    shipped: {
+      hi: "आपका कार्ड भेज दिया गया है",
+      en: "Your ID card has been dispatched",
+      body: "Your membership card is on its way to the address below.",
+    },
+    delivered: {
+      hi: "आपका कार्ड पहुँच गया है",
+      en: "Your ID card has been delivered",
+      body: "Our records show your membership card has been delivered. If it has not reached you, please contact us.",
+    },
+    cancelled: {
+      hi: "आपका ऑर्डर रद्द कर दिया गया है",
+      en: "Your ID card order was cancelled",
+      body: "Your membership card order has been cancelled. If that was not expected, please contact us and we will sort it out.",
+    },
+  };
+
+  const c = copy[status] ?? {
+    hi: "आपके ऑर्डर की स्थिति बदली है",
+    en: "Your ID card order was updated",
+    body: `The status of your membership card order is now "${status}".`,
+  };
+
+  const showAddress =
+    Boolean(deliveryAddress) && (status === "shipped" || status === "delivered");
+
+  return {
+    subject: c.en,
+    html: shell(
+      c.hi,
+      c.en,
+      `
+      <p style="margin:0 0 14px 0;">नमस्ते ${escapeHtml(name)},</p>
+      <p style="margin:0 0 14px 0;">${escapeHtml(c.body)}</p>
+      ${
+        showAddress
+          ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;background-color:${BRAND.saffronPale};border:1px solid ${BRAND.border};border-radius:8px;">
+               <tr>
+                 <td style="padding:14px 18px;font-family:Arial,Helvetica,sans-serif;">
+                   <div style="font-size:12px;color:${BRAND.muted};text-transform:uppercase;letter-spacing:0.5px;">Delivery address</div>
+                   <div style="font-size:14px;color:${BRAND.navy};margin-top:4px;">${escapeHtml(deliveryAddress!)}</div>
+                 </td>
+               </tr>
+             </table>`
+          : ""
+      }
+      ${button("View my ID card", `${SITE_URL}/dashboard/id-card`)}`
+    ),
+    text: `नमस्ते ${name},
+
+${c.body}${showAddress ? `\n\nDelivery address: ${deliveryAddress}` : ""}
+
+${SITE_URL}/dashboard/id-card`,
+  };
+}
+
+/** Business listing went live in the directory. */
+export function businessApprovedEmail(
+  member: MemberSummary,
+  businessName: string,
+  expiresAt: string | null
+): EmailContent {
+  const name = fullName(member);
+  const expiry = expiresAt
+    ? new Date(expiresAt).toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : null;
+
+  return {
+    subject: `${businessName} is now listed in the business directory`,
+    html: shell(
+      "आपका व्यवसाय सूचीबद्ध हो गया है",
+      "Your business listing is live",
+      `
+      <p style="margin:0 0 14px 0;">नमस्ते ${escapeHtml(name)},</p>
+      <p style="margin:0 0 14px 0;">
+        <strong>${escapeHtml(businessName)}</strong> has been approved and is now
+        visible in the Bhartiya Namo Sangh business directory.
+      </p>
+      ${
+        expiry
+          ? `<p style="margin:0 0 14px 0;">The listing runs until <strong>${escapeHtml(expiry)}</strong>.</p>`
+          : ""
+      }
+      ${button("View the directory", `${SITE_URL}/businesses`)}`
+    ),
+    text: `नमस्ते ${name},
+
+${businessName} has been approved and is now visible in the business directory.${
+      expiry ? `\n\nThe listing runs until ${expiry}.` : ""
+    }
+
+${SITE_URL}/businesses`,
+  };
+}
+
+/** Business listing refused. The admin screen requires a reason, so quote it. */
+export function businessRejectedEmail(
+  member: MemberSummary,
+  businessName: string,
+  reason: string | null
+): EmailContent {
+  const name = fullName(member);
+
+  return {
+    subject: `About your listing for ${businessName}`,
+    html: shell(
+      "आपके व्यवसाय आवेदन के संबंध में",
+      "About your business listing",
+      `
+      <p style="margin:0 0 14px 0;">नमस्ते ${escapeHtml(name)},</p>
+      <p style="margin:0 0 14px 0;">
+        Your listing for <strong>${escapeHtml(businessName)}</strong> could not be
+        approved.
+      </p>
+      ${
+        reason
+          ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;background-color:${BRAND.saffronPale};border:1px solid ${BRAND.border};border-radius:8px;">
+               <tr>
+                 <td style="padding:14px 18px;font-family:Arial,Helvetica,sans-serif;">
+                   <div style="font-size:12px;color:${BRAND.muted};text-transform:uppercase;letter-spacing:0.5px;">Reason given</div>
+                   <div style="font-size:14px;color:${BRAND.navy};margin-top:4px;">${escapeHtml(reason)}</div>
+                 </td>
+               </tr>
+             </table>`
+          : ""
+      }
+      <p style="margin:0 0 14px 0;">
+        You can correct the details and submit it again from your dashboard.
+      </p>
+      ${button("Edit my business", `${SITE_URL}/dashboard/business`)}`
+    ),
+    text: `नमस्ते ${name},
+
+Your listing for ${businessName} could not be approved.${
+      reason ? `\n\nReason given: ${reason}` : ""
+    }
+
+You can correct the details and submit it again: ${SITE_URL}/dashboard/business`,
+  };
+}
+
+/* ---------------------------------------------------------------------------
+ * Admin alerts. Plainer than the member mail on purpose: these are worklist
+ * notifications, not correspondence, and they exist because the whole
+ * membership flow stalls until somebody looks at the queue.
+ * ------------------------------------------------------------------------- */
+
+export function newApplicationAdminEmail(
+  member: MemberSummary,
+  details: { email: string; phone: string | null; city: string | null }
+): EmailContent {
+  const name = fullName(member);
+
+  return {
+    subject: `New membership application: ${name}`,
+    html: shell(
+      "नया सदस्यता आवेदन",
+      "A new application is waiting for review",
+      `
+      <p style="margin:0 0 14px 0;">
+        <strong>${escapeHtml(name)}</strong> has registered and is waiting in the
+        approvals queue.
+      </p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;">
+        <tr><td style="padding:2px 12px 2px 0;color:${BRAND.muted};">Email</td><td style="padding:2px 0;">${escapeHtml(details.email)}</td></tr>
+        <tr><td style="padding:2px 12px 2px 0;color:${BRAND.muted};">Phone</td><td style="padding:2px 0;">${escapeHtml(details.phone ?? "—")}</td></tr>
+        <tr><td style="padding:2px 12px 2px 0;color:${BRAND.muted};">District</td><td style="padding:2px 0;">${escapeHtml(details.city ?? "—")}</td></tr>
+      </table>
+      ${button("Open the approvals queue", `${SITE_URL}/admin/approvals`)}`
+    ),
+    text: `${name} has registered and is waiting in the approvals queue.
+
+Email: ${details.email}
+Phone: ${details.phone ?? "—"}
+District: ${details.city ?? "—"}
+
+${SITE_URL}/admin/approvals`,
+  };
+}
+
+export function paymentSubmittedAdminEmail(
+  member: MemberSummary,
+  amount: number | null
+): EmailContent {
+  const name = fullName(member);
+  const sum =
+    amount && amount > 0 ? `₹${amount.toLocaleString("en-IN")}` : "the membership fee";
+
+  return {
+    subject: `Payment submitted: ${name}`,
+    html: shell(
+      "भुगतान की सूचना प्राप्त हुई",
+      "A member says they have paid",
+      `
+      <p style="margin:0 0 14px 0;">
+        <strong>${escapeHtml(name)}</strong> has marked ${escapeHtml(sum)} as paid
+        and is waiting for it to be checked against the bank record.
+      </p>
+      <p style="margin:0 0 14px 0;color:${BRAND.muted};font-size:13px;">
+        Their membership stays inactive until an admin confirms the payment.
+      </p>
+      ${button("Open membership payments", `${SITE_URL}/admin/membership-payments`)}`
+    ),
+    text: `${name} has marked ${sum} as paid and is waiting for confirmation.
+
+Their membership stays inactive until an admin confirms it.
+
+${SITE_URL}/admin/membership-payments`,
+  };
+}

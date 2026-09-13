@@ -90,7 +90,7 @@ export default function ApprovalsPage() {
 
     // The status is written; tell them about it. Awaited so a failure shows up
     // in the console next to the action that caused it, not two screens later.
-    await notifyMember(memberId, "approved");
+    await notifyMember({ event: "approved", memberId });
 
     setMembers((prev) => prev.filter((m) => m.id !== memberId));
     setExpandedMember(null);
@@ -114,6 +114,8 @@ export default function ApprovalsPage() {
       console.error("Failed to reject member:", error);
       alert("Failed to reject member: " + error.message);
     } else {
+      // Someone applied and waited; a silent suspension tells them nothing.
+      await notifyMember({ event: "rejected", memberId });
       setMembers((prev) => prev.filter((m) => m.id !== memberId));
       setExpandedMember(null);
     }

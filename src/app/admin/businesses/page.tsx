@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { notifyMember } from "@/lib/notify-member";
 import type { Business, BusinessStatus } from "@/lib/supabase/types";
 
 const STATUS_LABELS: Record<BusinessStatus, { label: string; color: string }> = {
@@ -70,6 +71,9 @@ export default function AdminBusinessesPage() {
       return;
     }
 
+    // The listing is live; the member who submitted it should hear so.
+    await notifyMember({ event: "business_decision", businessId });
+
     loadBusinesses();
   }
 
@@ -98,6 +102,9 @@ export default function AdminBusinessesPage() {
       alert("Failed to reject: " + error.message);
       return;
     }
+
+    // Sent after the reason is stored, so the email can quote what was written.
+    await notifyMember({ event: "business_decision", businessId });
 
     loadBusinesses();
   }

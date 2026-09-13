@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { notifyMember } from "@/lib/notify-member";
 import {
   ID_CARD_STATUS_LABELS,
   ID_CARD_STATUS_STYLES,
@@ -79,6 +80,11 @@ export default function IdCardOrdersPage() {
       alert("Could not update the order status.");
       return;
     }
+
+    // The member paid for a card they cannot see being made; the status change
+    // is the only thing they have to go on.
+    await notifyMember({ event: "id_card_status", orderId: id });
+
     await loadOrders();
   }
 

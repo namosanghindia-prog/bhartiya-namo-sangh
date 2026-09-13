@@ -159,7 +159,7 @@ export default function MembershipPaymentsPage() {
 
     // Only past the read-back above, so this never announces a membership that
     // the database did not actually activate.
-    await notifyMember(memberId, "activated");
+    await notifyMember({ event: "activated", memberId });
 
     setPayments((prev) => prev.filter((p) => p.id !== memberId));
     setProcessing(null);

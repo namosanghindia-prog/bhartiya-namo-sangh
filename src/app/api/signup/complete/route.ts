@@ -7,7 +7,8 @@ import {
   uploadAvatar,
 } from "@/lib/avatar";
 import { sendEmail } from "@/lib/email/send";
-import { welcomeEmail } from "@/lib/email/templates";
+import { adminNotificationAddress } from "@/lib/email/recipients";
+import { newApplicationAdminEmail, welcomeEmail } from "@/lib/email/templates";
 
 /**
  * Finishes what the signup form could not.
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
   // nothing to fill in yet and a later profile save will cover it.
   const { data: member, error: memberError } = await supabaseAdmin
     .from("members")
-    .select("id, avatar_url, father_name, address, city, state, first_name, last_name")
+    .select("id, avatar_url, father_name, address, city, state, first_name, last_name, phone")
     .eq("id", userId)
     .maybeSingle();
 
@@ -200,11 +201,36 @@ export async function POST(request: NextRequest) {
     text: welcome.text,
   });
 
+  // And tell the admins there is something in the queue. Nothing about this
+  // application progresses until one of them looks at it.
+  const adminTo = await adminNotificationAddress(supabaseAdmin);
+  let adminAlertSent = false;
+
+  if (adminTo) {
+    const alert = newApplicationAdminEmail(
+      { firstName: member.first_name, lastName: member.last_name },
+      {
+        email,
+        phone: member.phone ?? null,
+        city: updates.city ?? (member.city as string | null) ?? null,
+      }
+    );
+
+    const adminMail = await sendEmail({
+      to: adminTo,
+      subject: alert.subject,
+      html: alert.html,
+      text: alert.text,
+    });
+    adminAlertSent = adminMail.sent;
+  }
+
   return NextResponse.json({
     success: true,
     photoSaved,
     photoError,
     fieldsSaved: filled,
     welcomeEmailSent: mail.sent,
+    adminAlertSent,
   });
 }

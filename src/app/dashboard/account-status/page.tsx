@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { notifyPaymentSubmitted } from "@/lib/notify-member";
 
 const MEMBERSHIP_LABELS: Record<string, string> = {
   volunteer: "Volunteer Membership",
@@ -112,6 +113,9 @@ function AccountStatusContent() {
       console.error("Failed to submit payment:", error);
       alert("Failed to submit payment confirmation. Please try again.");
     } else {
+      // Nothing happens to this membership until an admin checks the payment
+      // against the bank record, so put it in front of them.
+      await notifyPaymentSubmitted();
       setPaymentSubmitted(true);
     }
     setSubmitting(false);
