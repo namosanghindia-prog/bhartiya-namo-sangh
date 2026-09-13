@@ -6,6 +6,8 @@ import {
   AVATAR_MAX_MB,
   uploadAvatar,
 } from "@/lib/avatar";
+import { sendEmail } from "@/lib/email/send";
+import { welcomeEmail } from "@/lib/email/templates";
 
 /**
  * Finishes what the signup form could not.
@@ -109,7 +111,7 @@ export async function POST(request: NextRequest) {
   // nothing to fill in yet and a later profile save will cover it.
   const { data: member, error: memberError } = await supabaseAdmin
     .from("members")
-    .select("id, avatar_url, father_name, address, city, state")
+    .select("id, avatar_url, father_name, address, city, state, first_name, last_name")
     .eq("id", userId)
     .maybeSingle();
 
@@ -183,10 +185,26 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Confirms the application landed. This is the only mail signup sends now
+  // that Supabase no longer has a confirmation link to deliver, so a member who
+  // hears nothing has genuinely not registered. Never fails the request.
+  const welcome = welcomeEmail({
+    firstName: member.first_name,
+    lastName: member.last_name,
+  });
+
+  const mail = await sendEmail({
+    to: email,
+    subject: welcome.subject,
+    html: welcome.html,
+    text: welcome.text,
+  });
+
   return NextResponse.json({
     success: true,
     photoSaved,
     photoError,
     fieldsSaved: filled,
+    welcomeEmailSent: mail.sent,
   });
 }

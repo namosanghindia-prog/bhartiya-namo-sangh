@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { notifyMember } from "@/lib/notify-member";
 
 interface PendingPayment {
   id: string;
@@ -155,6 +156,10 @@ export default function MembershipPaymentsPage() {
       await loadPendingPayments();
       return;
     }
+
+    // Only past the read-back above, so this never announces a membership that
+    // the database did not actually activate.
+    await notifyMember(memberId, "activated");
 
     setPayments((prev) => prev.filter((p) => p.id !== memberId));
     setProcessing(null);

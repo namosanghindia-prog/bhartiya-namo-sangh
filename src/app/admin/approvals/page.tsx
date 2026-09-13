@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { notifyMember } from "@/lib/notify-member";
 
 interface PendingMember {
   id: string;
@@ -86,6 +87,10 @@ export default function ApprovalsPage() {
         return;
       }
     }
+
+    // The status is written; tell them about it. Awaited so a failure shows up
+    // in the console next to the action that caused it, not two screens later.
+    await notifyMember(memberId, "approved");
 
     setMembers((prev) => prev.filter((m) => m.id !== memberId));
     setExpandedMember(null);

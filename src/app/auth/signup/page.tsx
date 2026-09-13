@@ -11,13 +11,19 @@ import {
   AVATAR_MAX_MB,
 } from "@/lib/avatar";
 import { blobToDataUrl, shrinkImage } from "@/lib/image";
-import { storePendingAvatar, clearPendingAvatar } from "@/lib/pending-avatar";
+import {
+  storePendingAvatar,
+  clearPendingAvatar,
+  flushPendingAvatar,
+} from "@/lib/pending-avatar";
+import { redeemPendingVipCoupon } from "@/lib/vip-coupon";
 
 export default function SignupPage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [vipNotice, setVipNotice] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -260,11 +266,11 @@ export default function SignupPage() {
       return;
     }
 
-    // signUp issues no session while email confirmation is on, so the browser
-    // cannot write the photo or the address itself. Hand both to the server,
-    // which does it with the service role. Failure is not fatal: the photo is
-    // still stashed locally and retried at first login, and the member can fill
-    // the address in from their profile page.
+    // signUp hands back no session while email confirmation is on, so the
+    // browser cannot write the photo or the address itself. The server does
+    // both with the service role. Failure is not fatal: the photo is still
+    // stashed on this device and retried at first login, and the member can
+    // fill the address in from their profile page.
     if (signUpData?.user) {
       await saveSignupDetails(signUpData.user.id, {
         email,
@@ -275,8 +281,50 @@ export default function SignupPage() {
       });
     }
 
+    // Email confirmation is off, so signUp signs the member in. There is no
+    // inbox round trip to wait for and nothing to "check your email" about —
+    // take them to their account, where the status page explains that their
+    // application is with the admins.
+    if (signUpData?.session && signUpData.user) {
+      // Belt and braces on the photo: if the server call above did not get
+      // through, this member now has a session of their own to upload with.
+      await flushPendingAvatar(supabase, signUpData.user.id);
+
+      const outcome = await redeemPendingVipCoupon(supabase, signUpData.user);
+
+      setSubmitting(false);
+
+      if (outcome === "redeemed") {
+        setVipNotice("🎉 VIP membership activated!");
+        setTimeout(() => {
+          router.push("/dashboard");
+          router.refresh();
+        }, 2000);
+        return;
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+      return;
+    }
+
+    // Confirmation is still switched on for this project: the account exists
+    // but cannot be used until the link in the email is clicked.
     setSubmitting(false);
     setSuccess(true);
+  }
+
+  if (vipNotice) {
+    return (
+      <div className="text-center">
+        <h1 className="font-heading text-2xl font-semibold text-navy">
+          {vipNotice}
+        </h1>
+        <p className="mt-3 text-sm text-navy/70">
+          Taking you to your dashboard...
+        </p>
+      </div>
+    );
   }
 
   if (success) {

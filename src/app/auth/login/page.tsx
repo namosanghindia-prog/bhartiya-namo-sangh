@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { flushPendingAvatar } from "@/lib/pending-avatar";
+import { redeemPendingVipCoupon } from "@/lib/vip-coupon";
 
 function LoginForm() {
   const router = useRouter();
@@ -58,60 +59,31 @@ function LoginForm() {
       // photo did not get through then, still has it stashed on this device.
       await flushPendingAvatar(supabase, signInData.user.id);
 
-      // Check for VIP coupon code in user metadata
-      const vipCouponCode = signInData.user.user_metadata?.vip_coupon_code;
-      if (vipCouponCode) {
-        try {
-          const { data: redeemResult, error: redeemError } = await supabase.rpc(
-            "redeem_vip_coupon",
-            { coupon_code: vipCouponCode, member_id: signInData.user.id }
-          );
+      // A code can still be sitting in metadata from a signup that happened
+      // before it was redeemed on the spot.
+      const outcome = await redeemPendingVipCoupon(supabase, signInData.user);
 
-          // Clear the vip_coupon_code from metadata regardless of result
-          await supabase.auth.updateUser({
-            data: { vip_coupon_code: null },
-          });
+      if (outcome === "redeemed") {
+        setVipMessage({ type: "success", text: "🎉 VIP membership activated!" });
+        setSubmitting(false);
+        setTimeout(() => {
+          router.push("/dashboard");
+          router.refresh();
+        }, 2000);
+        return;
+      }
 
-          if (redeemError) {
-            console.error("VIP coupon redemption error:", redeemError);
-            setVipMessage({
-              type: "error",
-              text: "This VIP code is invalid or already used. Your application will go through standard review.",
-            });
-            setSubmitting(false);
-            setTimeout(() => {
-              router.push(redirectTo);
-              router.refresh();
-            }, 3000);
-            return;
-          }
-
-          if (redeemResult === true) {
-            setVipMessage({
-              type: "success",
-              text: "🎉 VIP membership activated!",
-            });
-            setSubmitting(false);
-            setTimeout(() => {
-              router.push("/dashboard");
-              router.refresh();
-            }, 2000);
-            return;
-          } else {
-            setVipMessage({
-              type: "error",
-              text: "This VIP code is invalid or already used. Your application will go through standard review.",
-            });
-            setSubmitting(false);
-            setTimeout(() => {
-              router.push(redirectTo);
-              router.refresh();
-            }, 3000);
-            return;
-          }
-        } catch (err) {
-          console.error("Failed to redeem VIP coupon:", err);
-        }
+      if (outcome === "rejected") {
+        setVipMessage({
+          type: "error",
+          text: "This VIP code is invalid or already used. Your application will go through standard review.",
+        });
+        setSubmitting(false);
+        setTimeout(() => {
+          router.push(redirectTo);
+          router.refresh();
+        }, 3000);
+        return;
       }
     }
 

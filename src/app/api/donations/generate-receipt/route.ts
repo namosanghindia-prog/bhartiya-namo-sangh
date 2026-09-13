@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { DonationReceipt } from "@/lib/receipt-pdf";
+import { sendEmail } from "@/lib/email/send";
+import { donationReceiptEmail } from "@/lib/email/templates";
 import { promises as fs } from "fs";
 import path from "path";
 
@@ -127,9 +129,50 @@ let logoBase64: string | undefined;
     console.error("Failed to update receipt_url:", updateError);
   }
 
+  // Email the receipt to the donor, when there is an address to send it to.
+  // The PDF is already in hand, so it goes as an attachment rather than a link
+  // into private storage that the donor could not open.
+  let emailSent = false;
+
+  if (donation.donor_email) {
+    const content = donationReceiptEmail(
+      donation.donor_name,
+      donation.amount,
+      receiptNumber
+    );
+
+    const mail = await sendEmail({
+      to: donation.donor_email,
+      subject: content.subject,
+      html: content.html,
+      text: content.text,
+      attachments: [
+        {
+          filename: `${receiptNumber.replace(/\//g, "-")}.pdf`,
+          content: pdfBuffer,
+        },
+      ],
+    });
+
+    emailSent = mail.sent;
+
+    if (mail.sent) {
+      // Lets the admin screens show which donors have their receipt.
+      const { error: flagError } = await supabase
+        .from("donations")
+        .update({ tax_receipt_sent: true })
+        .eq("id", donationId);
+
+      if (flagError) {
+        console.error("Failed to flag the receipt as sent:", flagError);
+      }
+    }
+  }
+
   return NextResponse.json({
     success: true,
     receiptNumber,
     receiptUrl: storagePath,
+    emailSent,
   });
 }
