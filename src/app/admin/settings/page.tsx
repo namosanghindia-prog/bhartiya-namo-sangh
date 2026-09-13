@@ -539,40 +539,71 @@ export default function AdminSettingsPage() {
             Email settings
           </h2>
 
-          <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
+          <div className="rounded-lg bg-forest/5 border border-forest/20 p-4">
             <div className="flex gap-3">
-              <span className="text-amber-600 text-lg">📧</span>
+              <span className="text-forest text-lg">📧</span>
               <div>
-                <p className="text-sm font-medium text-amber-800">
-                  Email sending is not connected yet
+                <p className="text-sm font-medium text-forest">
+                  Email is connected, through Resend
                 </p>
-                <p className="mt-1 text-sm text-amber-700">
-                  Transactional emails (welcome, password reset, receipts) will
-                  be configured via environment variables once an email provider
-                  (SendGrid, AWS SES, or Resend) is set up. This is typically
-                  done during deployment configuration, not through this admin
-                  panel.
+                <p className="mt-1 text-sm text-navy/70">
+                  Nothing here needs switching on. It is configured with
+                  environment variables during deployment, and if the key is ever
+                  missing every message is skipped and logged rather than failing
+                  the action that triggered it.
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="text-sm text-navy/60 space-y-2">
-            <p className="font-medium text-navy/70">Required environment variables:</p>
+          <div className="text-sm text-navy/70 space-y-3">
+            <div>
+              <p className="font-medium text-navy/80">Members are emailed when:</p>
+              <ul className="mt-1 list-disc list-inside space-y-1 text-navy/60">
+                <li>they register — a welcome letter from the National President</li>
+                <li>their application is approved, or cannot be approved</li>
+                <li>a membership payment is confirmed</li>
+                <li>their ID card order changes status</li>
+                <li>a business listing is approved or refused</li>
+                <li>a donation receipt is generated — the PDF is attached</li>
+              </ul>
+            </div>
+
+            <div>
+              <p className="font-medium text-navy/80">Admins are emailed when:</p>
+              <ul className="mt-1 list-disc list-inside space-y-1 text-navy/60">
+                <li>someone registers and is waiting in the approvals queue</li>
+                <li>a member marks their membership payment as paid</li>
+              </ul>
+            </div>
+
+            <p className="text-navy/60">
+              An ID card or appointment letter can also be emailed to any member
+              on demand, from the buttons on the Members page.
+            </p>
+          </div>
+
+          <div className="text-sm text-navy/60 space-y-2 border-t border-saffron-100 pt-4">
+            <p className="font-medium text-navy/70">Environment variables:</p>
             <ul className="list-disc list-inside space-y-1 text-navy/50">
               <li>
-                <code className="text-xs bg-navy/5 px-1 rounded">SMTP_HOST</code> — SMTP server address
+                <code className="text-xs bg-navy/5 px-1 rounded">RESEND_API_KEY</code> — Resend API key, with sending access
               </li>
               <li>
-                <code className="text-xs bg-navy/5 px-1 rounded">SMTP_USER</code> — SMTP username/API key
+                <code className="text-xs bg-navy/5 px-1 rounded">EMAIL_FROM</code> — sender address, on a domain verified in Resend
               </li>
               <li>
-                <code className="text-xs bg-navy/5 px-1 rounded">SMTP_PASS</code> — SMTP password/secret
+                <code className="text-xs bg-navy/5 px-1 rounded">NEXT_PUBLIC_SITE_URL</code> — used for the links inside those emails
               </li>
               <li>
-                <code className="text-xs bg-navy/5 px-1 rounded">EMAIL_FROM</code> — Sender email address
+                <code className="text-xs bg-navy/5 px-1 rounded">ADMIN_EMAIL</code> — where admin alerts go. Optional: falls back to the primary email on the General tab.
               </li>
             </ul>
+            <p className="text-xs text-navy/50 pt-1">
+              Password reset emails come from Supabase rather than the key above.
+              They go out over Resend&apos;s SMTP endpoint, configured under
+              Supabase → Project Settings → Authentication → SMTP Settings.
+            </p>
           </div>
         </div>
       )}
