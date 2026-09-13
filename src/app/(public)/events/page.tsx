@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { EventCategory } from "@/lib/supabase/types";
+import { EVENT } from "@/lib/namo-sewa-samman";
 
 const CATEGORIES: EventCategory[] = [
   "Social",
@@ -140,6 +141,28 @@ export default function EventsPage() {
       {/* EVENTS GRID */}
       <section className="py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {/* नमो सेवा सम्मान - 2026 has its own page and registration table, not an events row. */}
+          <Link
+            href={EVENT.pagePath}
+            className="mb-8 flex flex-col gap-4 rounded-xl border-2 border-saffron-400 bg-saffron-50 p-6 transition-all hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div>
+              <span className="inline-block rounded-full bg-[#138808] px-3 py-1 text-xs font-semibold text-white">
+                Registrations open
+              </span>
+              <h3 className="font-devanagari mt-3 text-2xl font-bold text-saffron-800">
+                {EVENT.nameHi}
+              </h3>
+              <p className="font-devanagari font-semibold text-[#138808]">{EVENT.taglineHi}</p>
+              <p className="mt-2 text-sm text-navy/60">
+                📅 {EVENT.dateEn} &middot; ⏰ {EVENT.timeEn} &middot; 📍 {EVENT.venue}
+              </p>
+            </div>
+            <span className="shrink-0 rounded-md bg-saffron-700 px-5 py-3 text-center font-semibold text-white">
+              पंजीकरण करें / Register →
+            </span>
+          </Link>
+
           {loading ? (
             <p className="text-navy/60 text-sm">Loading events...</p>
           ) : filtered.length === 0 ? (

@@ -60,7 +60,16 @@ function button(label: string, href: string): string {
  * logo itself travels inside the message — see INLINE_IMAGES in send.ts — so the
  * alt text is what shows only if a client hides embedded images too.
  */
-function shell(headingHi: string, headingEn: string, body: string): string {
+function shell(
+  headingHi: string,
+  headingEn: string,
+  body: string,
+  /** Why the recipient got this. Defaults to the membership-signup wording. */
+  reason: { hi: string; en: string } = {
+    hi: "पर सदस्यता के लिए पंजीकरण किया है।",
+    en: "You are receiving this because you registered at bhartiyanamosangh.com.",
+  }
+): string {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -104,8 +113,8 @@ function shell(headingHi: string, headingEn: string, body: string): string {
             <td style="background-color:${BRAND.saffronPale};padding:18px 28px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:${BRAND.muted};">
               आपको यह संदेश इसलिए प्राप्त हुआ है क्योंकि आपने
               <a href="${SITE_URL}" style="color:${BRAND.saffronDark};">bhartiyanamosangh.com</a>
-              पर सदस्यता के लिए पंजीकरण किया है। कृपया इस पते पर उत्तर न दें — यह निगरानी में नहीं है।<br>
-              <span style="color:${BRAND.muted};opacity:0.85;">You are receiving this because you registered at bhartiyanamosangh.com. This address is not monitored.</span>
+              ${reason.hi} कृपया इस पते पर उत्तर न दें — यह निगरानी में नहीं है।<br>
+              <span style="color:${BRAND.muted};opacity:0.85;">${reason.en} This address is not monitored.</span>
             </td>
           </tr>
         </table>
@@ -749,5 +758,85 @@ export function appointmentLetterEmail(
 हमें पूर्ण विश्वास है कि आप संगठन के उद्देश्यों एवं मूल्यों के प्रति निष्ठा एवं समर्पण के साथ कार्य करेंगे।
 
 अपने खाते में देखें: ${SITE_URL}/dashboard/appointment-letter`,
+  };
+}
+
+/* ---------------------------------------------------------------------------
+ * नमो सेवा सम्मान - 2026. Sent by the public register route, to people who
+ * are usually not members, with the invitation letter PDF rendered on the
+ * server attached.
+ * ------------------------------------------------------------------------- */
+
+export interface EventInvitationDetails {
+  fullName: string;
+  registrationNumber: string;
+  eventName: string;
+  tagline: string;
+  date: string;
+  time: string;
+  venue: string;
+  verificationUrl: string;
+}
+
+/** Accompanies the event invitation letter PDF. */
+export function eventInvitationEmail(d: EventInvitationDetails): EmailContent {
+  const row = (label: string, value: string) => `
+               <tr>
+                 <td style="padding:6px 0;font-size:12px;color:${BRAND.muted};white-space:nowrap;vertical-align:top;">${label}</td>
+                 <td style="padding:6px 0 6px 14px;font-size:15px;font-weight:bold;color:${BRAND.navy};">${escapeHtml(value)}</td>
+               </tr>`;
+
+  return {
+    subject: `आमंत्रण पत्र: ${d.eventName} — पंजीकरण ${d.registrationNumber}`,
+    html: shell(
+      `${d.eventName} — आमंत्रण`,
+      "Your invitation letter",
+      `
+      <p style="margin:0 0 16px 0;">आदरणीय ${escapeHtml(d.fullName)} जी,</p>
+      <p style="margin:0 0 16px 0;">
+        <strong>भारतीय नमो संघ</strong> द्वारा आयोजित
+        <strong>${escapeHtml(d.eventName)}</strong> (${escapeHtml(d.tagline)}) में
+        आपका पंजीकरण सफलतापूर्वक हो गया है। आपका आमंत्रण पत्र इस ईमेल के साथ
+        संलग्न है।
+      </p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;width:100%;background-color:${BRAND.saffronPale};border:1px solid ${BRAND.border};border-radius:8px;">
+        <tr>
+          <td style="padding:12px 18px;font-family:Arial,Helvetica,sans-serif;">
+            <table role="presentation" cellpadding="0" cellspacing="0">
+              ${row("पंजीकरण संख्या", d.registrationNumber)}
+              ${row("दिनांक", d.date)}
+              ${row("समय", d.time)}
+              ${row("स्थान", d.venue)}
+            </table>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:0 0 16px 0;">
+        कृपया कार्यक्रम स्थल पर प्रवेश के समय यह आमंत्रण पत्र (प्रिंट या मोबाइल पर)
+        साथ लाएँ। पत्र पर छपे QR कोड से आपके पंजीकरण का सत्यापन किया जाएगा।
+      </p>
+      <p style="margin:0 0 16px 0;font-size:13px;color:${BRAND.muted};">
+        Your registration for ${escapeHtml(d.eventName)} is confirmed and your
+        invitation letter is attached. Please bring it with you — the QR code on it
+        is scanned at entry.
+      </p>
+      ${button("पंजीकरण सत्यापित करें", d.verificationUrl)}`,
+      {
+        hi: `पर ${escapeHtml(d.eventName)} के लिए पंजीकरण किया है।`,
+        en: "You are receiving this because you registered for this event at bhartiyanamosangh.com.",
+      }
+    ),
+    text: `आदरणीय ${d.fullName} जी,
+
+भारतीय नमो संघ द्वारा आयोजित ${d.eventName} (${d.tagline}) में आपका पंजीकरण सफलतापूर्वक हो गया है। आपका आमंत्रण पत्र इस ईमेल के साथ संलग्न है।
+
+पंजीकरण संख्या: ${d.registrationNumber}
+दिनांक: ${d.date}
+समय: ${d.time}
+स्थान: ${d.venue}
+
+कृपया कार्यक्रम स्थल पर यह आमंत्रण पत्र साथ लाएँ।
+
+पंजीकरण सत्यापित करें: ${d.verificationUrl}`,
   };
 }
