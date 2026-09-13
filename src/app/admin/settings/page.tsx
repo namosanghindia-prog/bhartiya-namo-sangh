@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import SecuritySettings from "./SecuritySettings";
 
 interface OrgSettings {
   org_name: string;
@@ -29,7 +30,9 @@ interface ContactSettings {
 }
 
 export default function AdminSettingsPage() {
-  const [tab, setTab] = useState<"general" | "contact" | "email" | "payments">("general");
+  const [tab, setTab] = useState<
+    "general" | "contact" | "security" | "email" | "payments"
+  >("general");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -186,7 +189,7 @@ export default function AdminSettingsPage() {
       </h1>
 
       <div className="flex flex-wrap gap-2 border-b border-saffron-200">
-        {(["general", "contact", "email", "payments"] as const).map((t) => (
+        {(["general", "contact", "security", "email", "payments"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -527,6 +530,8 @@ export default function AdminSettingsPage() {
           )}
         </div>
       )}
+
+      {tab === "security" && <SecuritySettings />}
 
       {tab === "email" && (
         <div className="rounded-xl border border-saffron-200 bg-white p-6 space-y-4">
