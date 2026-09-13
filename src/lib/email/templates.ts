@@ -1,4 +1,5 @@
 import "server-only";
+import { SIGNATORY } from "@/lib/signatory";
 
 /**
  * The transactional emails the organisation sends to members.
@@ -113,18 +114,6 @@ function fullName(member: MemberSummary): string {
   return `${member.firstName} ${member.lastName}`.trim();
 }
 
-/**
- * The signing office-bearer for the welcome message. Fixed, like the SIGNATORY
- * block in AppointmentLetter — this is the organisation's president, not
- * anything derived from the member being written to.
- */
-const PRESIDENT = {
-  nameHi: "मन्नू सिंह तोमर",
-  nameEn: "Mannu Singh Tomar",
-  roleHi: "राष्ट्रीय अध्यक्ष",
-  roleEn: "National President",
-  orgHi: "भारतीय नमो संघ",
-} as const;
 
 /**
  * Sent the moment an account is created.
@@ -184,13 +173,13 @@ export function welcomeEmail(member: MemberSummary): EmailContent {
           <td style="padding:18px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:${BRAND.navy};">
             <div style="color:${BRAND.muted};font-size:13px;">सादर,</div>
             <div style="font-family:Georgia,'Times New Roman',serif;font-size:17px;font-weight:bold;color:${BRAND.navy};margin-top:6px;">
-              ${PRESIDENT.nameHi}
+              ${SIGNATORY.name}
             </div>
             <div style="color:${BRAND.saffronDark};font-size:13px;margin-top:2px;">
-              ${PRESIDENT.roleHi}, ${PRESIDENT.orgHi}
+              ${SIGNATORY.role}, ${SIGNATORY.org}
             </div>
             <div style="color:${BRAND.muted};font-size:12px;margin-top:4px;">
-              ${PRESIDENT.nameEn} — ${PRESIDENT.roleEn}
+              ${SIGNATORY.nameEn} — ${SIGNATORY.roleEn}
             </div>
           </td>
         </tr>
@@ -210,9 +199,9 @@ export function welcomeEmail(member: MemberSummary): EmailContent {
 आपके उज्ज्वल भविष्य के लिए हार्दिक शुभकामनाएँ।
 
 सादर,
-${PRESIDENT.nameHi}
-${PRESIDENT.roleHi}, ${PRESIDENT.orgHi}
-(${PRESIDENT.nameEn} — ${PRESIDENT.roleEn})`,
+${SIGNATORY.name}
+${SIGNATORY.role}, ${SIGNATORY.org}
+(${SIGNATORY.nameEn} — ${SIGNATORY.roleEn})`,
   };
 }
 /** Eligibility approved — the membership fee is the remaining step. */

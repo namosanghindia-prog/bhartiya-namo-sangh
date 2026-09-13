@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { toPng } from "html-to-image";
 import { emailDocumentToMember } from "@/lib/email-document";
+// Fixed for every letter — the signing office-bearer, not member data.
+import { SIGNATORY } from "@/lib/signatory";
 import { createClient } from "@/lib/supabase/client";
 import { getStateCode, verificationUrl as buildVerificationUrl } from "@/lib/membership";
 import OrgHeader from "@/components/OrgHeader";
@@ -347,14 +349,6 @@ const OBJECTIVES: { Icon: IconComponent; text: string }[] = [
   { Icon: IconSprout, text: "स्वच्छ, स्वस्थ एवं आत्मनिर्भर भारत के निर्माण में योगदान देना" },
 ];
 
-/** Fixed for every letter — the signing office-bearer, not member data. */
-const SIGNATORY = {
-  image: "/signature-president.png",
-  name: "डॉ. मनोज कुमार (मनु तोमर)",
-  role: "राष्ट्रीय अध्यक्ष",
-  org: "भारतीय नमो संघ (BNMS)",
-  note: "पूर्व राष्ट्रीय प्रवक्ता – वर्ल्ड वेदांत इंस्टीट्यूट",
-} as const;
 
 const BODY_PARAGRAPH_1 =
   "यह नियुक्ति तत्काल प्रभाव से लागू होगी तथा आगामी 2 वर्षों तक मान्य रहेगी।";
