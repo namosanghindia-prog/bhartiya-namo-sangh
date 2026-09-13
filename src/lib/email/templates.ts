@@ -23,7 +23,20 @@ const BRAND = {
 };
 
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://bhartiyanamosangh.com";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.bhartiyanamosangh.com";
+
+/**
+ * Origin for images *inside* an email.
+ *
+ * The apex 308-redirects to www. A browser follows that without noticing, so
+ * SITE_URL is fine for links, but an image is fetched by the mail client or its
+ * proxy and not all of them follow a redirect — the picture just fails to
+ * appear. So images are addressed at the canonical host directly.
+ */
+const ASSET_URL = SITE_URL.replace(/\/+$/, "").replace(
+  /^https:\/\/(?!www\.)/,
+  "https://www."
+);
 
 function escapeHtml(value: string): string {
   return value
@@ -65,7 +78,7 @@ function shell(headingHi: string, headingEn: string, body: string): string {
                    keeps the mark legible against the saffron on clients that do
                    load it, and the alt text carries the name on those that
                    block images by default. -->
-              <img src="${SITE_URL}/logo.png" width="72" height="72"
+              <img src="${ASSET_URL}/logo.png" width="72" height="72"
                    alt="भारतीय नमो संघ"
                    style="display:block;margin:0 auto 12px auto;width:72px;height:72px;border:0;outline:none;text-decoration:none;background-color:#ffffff;border-radius:50%;padding:6px;">
               <div style="font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:bold;color:#ffffff;">भारतीय नमो संघ</div>
@@ -175,7 +188,7 @@ export function welcomeEmail(member: MemberSummary): EmailContent {
             <!-- Absolute URL, like the masthead logo: relative paths never
                  resolve in a mail client. Alt text carries the signatory for
                  the many clients that block remote images by default. -->
-            <img src="${SITE_URL}/signature-president.png" width="170" height="42"
+            <img src="${ASSET_URL}/signature-president.png" width="170" height="42"
                  alt="${SIGNATORY.name} के हस्ताक्षर"
                  style="display:block;width:170px;height:auto;max-width:100%;margin:8px 0 2px 0;border:0;outline:none;text-decoration:none;">
             <div style="font-family:Georgia,'Times New Roman',serif;font-size:17px;font-weight:bold;color:${BRAND.navy};margin-top:6px;">
