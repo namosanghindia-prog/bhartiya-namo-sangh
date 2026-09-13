@@ -73,14 +73,24 @@ function shell(headingHi: string, headingEn: string, body: string): string {
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background-color:#ffffff;border:1px solid ${BRAND.border};border-radius:10px;overflow:hidden;">
           <tr>
             <td style="background:${BRAND.saffron};padding:24px;text-align:center;">
-              <!-- Absolute URL: an email is read outside the site, and many
-                   clients will not load anything but https. The white circle
-                   keeps the mark legible against the saffron on clients that do
-                   load it, and the alt text carries the name on those that
-                   block images by default. -->
-              <img src="${ASSET_URL}/logo.png" width="72" height="72"
-                   alt="भारतीय नमो संघ"
-                   style="display:block;margin:0 auto 12px auto;width:72px;height:72px;border:0;outline:none;text-decoration:none;background-color:#ffffff;border-radius:50%;padding:6px;">
+              <!-- The white badge is a table cell, not padding plus
+                   border-radius on the <img>. Outlook renders through Word and
+                   drops both, and a rounded background asked of an image is
+                   among the least reliable things a mail client will do — so the
+                   cell carries the colour and the image stays a plainly sized
+                   <img>, which every client understands.
+                   Absolute URL because an email is read outside the site, and
+                   the alt text carries the name where images are blocked. -->
+              <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto 12px auto;">
+                <tr>
+                  <td width="84" height="84" align="center" valign="middle"
+                      style="width:84px;height:84px;background-color:#ffffff;border-radius:42px;">
+                    <img src="${ASSET_URL}/logo.png" width="72" height="72"
+                         alt="भारतीय नमो संघ"
+                         style="display:block;width:72px;height:72px;border:0;outline:none;text-decoration:none;">
+                  </td>
+                </tr>
+              </table>
               <div style="font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:bold;color:#ffffff;">भारतीय नमो संघ</div>
               <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#ffffff;opacity:0.9;margin-top:4px;letter-spacing:0.5px;">BHARTIYA NAMO SANGH</div>
             </td>
