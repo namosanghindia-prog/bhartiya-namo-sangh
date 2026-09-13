@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { toPng } from "html-to-image";
+import { emailDocumentToMember } from "@/lib/email-document";
 import { createClient } from "@/lib/supabase/client";
 import { getStateCode, verificationUrl as buildVerificationUrl } from "@/lib/membership";
 import OrgHeader from "@/components/OrgHeader";
@@ -42,6 +43,8 @@ interface AppointmentLetterProps {
     branch?: { name: string; state?: string | null } | null;
   };
   showDownload?: boolean;
+  /** Shows an "email to member" button. Admin screens only — see MembershipCard. */
+  allowEmail?: boolean;
 }
 
 interface OrgContact {
@@ -538,10 +541,13 @@ function ScaledPage({ children }: { children: React.ReactNode }) {
 export default function AppointmentLetter({
   member,
   showDownload = true,
+  allowEmail = false,
 }: AppointmentLetterProps) {
   const pageRef = useRef<HTMLDivElement>(null);
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const [downloading, setDownloading] = useState(false);
+  const [emailing, setEmailing] = useState(false);
+  const [emailNote, setEmailNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [org, setOrg] = useState<OrgContact | null>(null);
 
   // Same /verify/{id} URL the ID card encodes — one QR, one verification target.
@@ -591,32 +597,43 @@ export default function AppointmentLetter({
       .catch((err) => console.error("QR generation failed:", err));
   }, [verificationUrl]);
 
-  const handleDownloadPdf = useCallback(async () => {
+  /**
+   * The letter, rasterised and wrapped in a single A4 page. Shared by the
+   * download and email buttons so the member cannot receive a letter that
+   * differs from the one the admin previewed.
+   */
+  const buildPdfBlob = useCallback(async (): Promise<Blob | null> => {
     const el = pageRef.current;
-    if (!el) return;
+    if (!el) return null;
+
+    const png = await toPng(el, {
+      cacheBust: true,
+      pixelRatio: PRINT_RATIO,
+      width: PAGE_W,
+      height: PAGE_H,
+      backgroundColor: "#ffffff",
+    });
+
+    const { pdf, Document, Page, Image: PdfImage } = await import("@react-pdf/renderer");
+    const pageW = PAGE_MM_W * MM_TO_PT;
+    const pageH = PAGE_MM_H * MM_TO_PT;
+
+    const LetterPdf = () => (
+      <Document title={`BNMS Appointment Letter ${serial}`}>
+        <Page size={[pageW, pageH]} style={{ padding: 0, backgroundColor: "#ffffff" }}>
+          <PdfImage src={png} style={{ width: pageW, height: pageH }} />
+        </Page>
+      </Document>
+    );
+
+    return pdf(<LetterPdf />).toBlob();
+  }, [serial]);
+
+  const handleDownloadPdf = useCallback(async () => {
     setDownloading(true);
     try {
-      const png = await toPng(el, {
-        cacheBust: true,
-        pixelRatio: PRINT_RATIO,
-        width: PAGE_W,
-        height: PAGE_H,
-        backgroundColor: "#ffffff",
-      });
-
-      const { pdf, Document, Page, Image: PdfImage } = await import("@react-pdf/renderer");
-      const pageW = PAGE_MM_W * MM_TO_PT;
-      const pageH = PAGE_MM_H * MM_TO_PT;
-
-      const LetterPdf = () => (
-        <Document title={`BNMS Appointment Letter ${serial}`}>
-          <Page size={[pageW, pageH]} style={{ padding: 0, backgroundColor: "#ffffff" }}>
-            <PdfImage src={png} style={{ width: pageW, height: pageH }} />
-          </Page>
-        </Document>
-      );
-
-      const blob = await pdf(<LetterPdf />).toBlob();
+      const blob = await buildPdfBlob();
+      if (!blob) return;
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.download = `appointment-letter-${member.membership_number}.pdf`;
@@ -629,7 +646,34 @@ export default function AppointmentLetter({
     } finally {
       setDownloading(false);
     }
-  }, [member.membership_number, serial]);
+  }, [buildPdfBlob, member.membership_number]);
+
+  const handleEmailToMember = useCallback(async () => {
+    setEmailing(true);
+    setEmailNote(null);
+    try {
+      const blob = await buildPdfBlob();
+      if (!blob) {
+        setEmailNote({ ok: false, text: "Could not render the letter." });
+        return;
+      }
+      const result = await emailDocumentToMember(
+        member.id,
+        "appointment_letter",
+        blob
+      );
+      setEmailNote(
+        result.sent
+          ? { ok: true, text: `Sent to ${result.to ?? "the member"}.` }
+          : { ok: false, text: result.reason ?? "Could not send." }
+      );
+    } catch (error) {
+      console.error("Failed to email the letter:", error);
+      setEmailNote({ ok: false, text: "Could not render the letter." });
+    } finally {
+      setEmailing(false);
+    }
+  }, [buildPdfBlob, member.id]);
 
   const phones = [org?.phone_primary, org?.phone_secondary, org?.phone_tertiary].filter(
     Boolean
@@ -969,6 +1013,27 @@ export default function AppointmentLetter({
             </svg>
             {downloading ? "Preparing PDF..." : "Download PDF"}
           </button>
+        </div>
+      )}
+
+      {allowEmail && (
+        <div className="w-full max-w-[794px]">
+          <button
+            onClick={handleEmailToMember}
+            disabled={emailing || downloading}
+            className="w-full rounded-md bg-forest px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-forest/90 disabled:opacity-60 flex items-center justify-center gap-1.5"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" {...iconProps}>
+              <path d="M4 4h16v16H4z" />
+              <polyline points="4 7 12 13 20 7" />
+            </svg>
+            {emailing ? "Sending..." : "Email appointment letter to member"}
+          </button>
+          {emailNote && (
+            <p className={`mt-2 text-xs ${emailNote.ok ? "text-forest" : "text-red-600"}`}>
+              {emailNote.text}
+            </p>
+          )}
         </div>
       )}
     </div>

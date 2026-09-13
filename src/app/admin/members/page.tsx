@@ -746,6 +746,7 @@ export default function AdminMembersPage() {
                     branch: selectedMember.branch?.[0] || null,
                   }}
                   showDownload={true}
+                  allowEmail
                 />
               </div>
             </div>
@@ -789,6 +790,7 @@ export default function AdminMembersPage() {
                       branch: selectedMember.branch?.[0] || null,
                     }}
                     showDownload={true}
+                    allowEmail
                   />
                 </div>
               </div>

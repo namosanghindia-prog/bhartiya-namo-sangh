@@ -59,6 +59,14 @@ function shell(headingHi: string, headingEn: string, body: string): string {
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background-color:#ffffff;border:1px solid ${BRAND.border};border-radius:10px;overflow:hidden;">
           <tr>
             <td style="background:${BRAND.saffron};padding:24px;text-align:center;">
+              <!-- Absolute URL: an email is read outside the site, and many
+                   clients will not load anything but https. The white circle
+                   keeps the mark legible against the saffron on clients that do
+                   load it, and the alt text carries the name on those that
+                   block images by default. -->
+              <img src="${SITE_URL}/logo.png" width="72" height="72"
+                   alt="भारतीय नमो संघ"
+                   style="display:block;margin:0 auto 12px auto;width:72px;height:72px;border:0;outline:none;text-decoration:none;background-color:#ffffff;border-radius:50%;padding:6px;">
               <div style="font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:bold;color:#ffffff;">भारतीय नमो संघ</div>
               <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#ffffff;opacity:0.9;margin-top:4px;letter-spacing:0.5px;">BHARTIYA NAMO SANGH</div>
             </td>
@@ -76,9 +84,10 @@ function shell(headingHi: string, headingEn: string, body: string): string {
           </tr>
           <tr>
             <td style="background-color:${BRAND.saffronPale};padding:18px 28px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:${BRAND.muted};">
-              You are receiving this because you registered as a member at
-              <a href="${SITE_URL}" style="color:${BRAND.saffronDark};">bhartiyanamosangh.com</a>.<br>
-              Please do not reply to this address — it is not monitored.
+              आपको यह संदेश इसलिए प्राप्त हुआ है क्योंकि आपने
+              <a href="${SITE_URL}" style="color:${BRAND.saffronDark};">bhartiyanamosangh.com</a>
+              पर सदस्यता के लिए पंजीकरण किया है। कृपया इस पते पर उत्तर न दें — यह निगरानी में नहीं है।<br>
+              <span style="color:${BRAND.muted};opacity:0.85;">You are receiving this because you registered at bhartiyanamosangh.com. This address is not monitored.</span>
             </td>
           </tr>
         </table>
@@ -104,41 +113,108 @@ function fullName(member: MemberSummary): string {
   return `${member.firstName} ${member.lastName}`.trim();
 }
 
-/** Sent the moment an account is created. */
+/**
+ * The signing office-bearer for the welcome message. Fixed, like the SIGNATORY
+ * block in AppointmentLetter — this is the organisation's president, not
+ * anything derived from the member being written to.
+ */
+const PRESIDENT = {
+  nameHi: "मन्नू सिंह तोमर",
+  nameEn: "Mannu Singh Tomar",
+  roleHi: "राष्ट्रीय अध्यक्ष",
+  roleEn: "National President",
+  orgHi: "भारतीय नमो संघ",
+} as const;
+
+/**
+ * Sent the moment an account is created.
+ *
+ * Written in Hindi and in the president's voice: this is the organisation's
+ * first word to a new member, and for most of them Hindi is the language they
+ * filled the form in. The English line under the signature is there so the
+ * signatory is unambiguous to anyone reading it in transliteration, not as a
+ * translation of the message.
+ */
 export function welcomeEmail(member: MemberSummary): EmailContent {
   const name = fullName(member);
 
   return {
-    subject: "Welcome to Bhartiya Namo Sangh — your application is in review",
+    subject: "भारतीय नमो संघ में आपका हार्दिक स्वागत है",
     html: shell(
-      "आपका स्वागत है",
-      "Your membership application has been received",
+      "आपका हार्दिक स्वागत है",
+      "A message from the National President",
       `
-      <p style="margin:0 0 14px 0;">नमस्ते ${escapeHtml(name)},</p>
-      <p style="margin:0 0 14px 0;">
-        Thank you for registering with Bhartiya Namo Sangh. Your application has
-        been received and is now with our team for review.
+      <p style="margin:0 0 16px 0;">आदरणीय ${escapeHtml(name)} जी,</p>
+
+      <p style="margin:0 0 16px 0;">
+        <strong>भारतीय नमो संघ</strong> परिवार में आपका हार्दिक स्वागत है। आपने
+        राष्ट्रनिर्माण एवं समाजसेवा के इस पवित्र संकल्प में सहभागी बनने का निर्णय
+        लिया, इसके लिए मैं आपका हृदय से आभार व्यक्त करता हूँ।
       </p>
-      <p style="margin:0 0 14px 0;">
-        You can sign in at any time to check its progress, correct your details
-        or replace your photograph. We will email you again as soon as a
-        decision has been made.
+
+      <p style="margin:0 0 16px 0;">
+        हमारा संगठन इस विश्वास पर खड़ा है कि परिवर्तन किसी एक व्यक्ति से नहीं,
+        बल्कि समर्पित कार्यकर्ताओं के सामूहिक प्रयास से आता है। सरकार की
+        जनकल्याणकारी योजनाओं को समाज के अंतिम व्यक्ति तक पहुँचाना, युवाओं,
+        महिलाओं एवं किसानों को सशक्त बनाना, और एक स्वच्छ, स्वस्थ एवं आत्मनिर्भर
+        भारत के निर्माण में योगदान देना — यही हमारा ध्येय है। आज से आप भी इस
+        संकल्प के सहभागी हैं।
       </p>
-      ${button("View my account", `${SITE_URL}/dashboard`)}
-      <p style="margin:0;color:${BRAND.muted};font-size:13px;">
-        सदस्यता की समीक्षा के बाद आपको सूचित किया जाएगा।
-      </p>`
+
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px 0;background-color:${BRAND.saffronPale};border-left:4px solid ${BRAND.saffron};border-radius:4px;">
+        <tr>
+          <td style="padding:14px 18px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:${BRAND.navy};">
+            <strong>आगे क्या होगा?</strong><br>
+            आपका सदस्यता आवेदन प्राप्त हो चुका है और वर्तमान में समीक्षाधीन है।
+            समीक्षा पूर्ण होने पर आपको ईमेल द्वारा सूचित किया जाएगा। तब तक आप अपने
+            खाते में जाकर अपनी जानकारी देख एवं संशोधित कर सकते हैं।
+          </td>
+        </tr>
+      </table>
+
+      ${button("मेरा खाता देखें", `${SITE_URL}/dashboard`)}
+
+      <p style="margin:0 0 22px 0;">
+        संगठन के प्रत्येक कार्यक्रम एवं अभियान में आपकी सक्रिय भागीदारी की
+        अपेक्षा है। आपके उज्ज्वल भविष्य के लिए हार्दिक शुभकामनाएँ।
+      </p>
+
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0;border-top:1px solid ${BRAND.border};width:100%;">
+        <tr>
+          <td style="padding:18px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:${BRAND.navy};">
+            <div style="color:${BRAND.muted};font-size:13px;">सादर,</div>
+            <div style="font-family:Georgia,'Times New Roman',serif;font-size:17px;font-weight:bold;color:${BRAND.navy};margin-top:6px;">
+              ${PRESIDENT.nameHi}
+            </div>
+            <div style="color:${BRAND.saffronDark};font-size:13px;margin-top:2px;">
+              ${PRESIDENT.roleHi}, ${PRESIDENT.orgHi}
+            </div>
+            <div style="color:${BRAND.muted};font-size:12px;margin-top:4px;">
+              ${PRESIDENT.nameEn} — ${PRESIDENT.roleEn}
+            </div>
+          </td>
+        </tr>
+      </table>`
     ),
-    text: `नमस्ते ${name},
+    text: `आदरणीय ${name} जी,
 
-Thank you for registering with Bhartiya Namo Sangh. Your application has been received and is now with our team for review.
+भारतीय नमो संघ परिवार में आपका हार्दिक स्वागत है। आपने राष्ट्रनिर्माण एवं समाजसेवा के इस पवित्र संकल्प में सहभागी बनने का निर्णय लिया, इसके लिए मैं आपका हृदय से आभार व्यक्त करता हूँ।
 
-You can sign in at any time to check its progress: ${SITE_URL}/dashboard
+हमारा संगठन इस विश्वास पर खड़ा है कि परिवर्तन किसी एक व्यक्ति से नहीं, बल्कि समर्पित कार्यकर्ताओं के सामूहिक प्रयास से आता है। सरकार की जनकल्याणकारी योजनाओं को समाज के अंतिम व्यक्ति तक पहुँचाना, युवाओं, महिलाओं एवं किसानों को सशक्त बनाना, और एक स्वच्छ, स्वस्थ एवं आत्मनिर्भर भारत के निर्माण में योगदान देना — यही हमारा ध्येय है।
 
-We will email you again as soon as a decision has been made.`,
+आगे क्या होगा?
+आपका सदस्यता आवेदन प्राप्त हो चुका है और वर्तमान में समीक्षाधीन है। समीक्षा पूर्ण होने पर आपको ईमेल द्वारा सूचित किया जाएगा।
+
+अपना खाता देखें: ${SITE_URL}/dashboard
+
+आपके उज्ज्वल भविष्य के लिए हार्दिक शुभकामनाएँ।
+
+सादर,
+${PRESIDENT.nameHi}
+${PRESIDENT.roleHi}, ${PRESIDENT.orgHi}
+(${PRESIDENT.nameEn} — ${PRESIDENT.roleEn})`,
   };
 }
-
 /** Eligibility approved — the membership fee is the remaining step. */
 export function applicationApprovedEmail(
   member: MemberSummary,
@@ -537,5 +613,111 @@ export function paymentSubmittedAdminEmail(
 Their membership stays inactive until an admin confirms it.
 
 ${SITE_URL}/admin/membership-payments`,
+  };
+}
+
+/* ---------------------------------------------------------------------------
+ * Documents an admin sends on demand from /admin/members. The PDF itself is
+ * rasterised in the admin's browser from the very same MembershipCard and
+ * AppointmentLetter components they are looking at, so what the member receives
+ * is byte-for-byte what the admin previewed — there is no second rendering of
+ * these designs to keep in step.
+ * ------------------------------------------------------------------------- */
+
+/** Accompanies the membership ID card PDF. */
+export function idCardEmail(
+  member: MemberSummary,
+  membershipNumber: number | null
+): EmailContent {
+  const name = fullName(member);
+
+  return {
+    subject: "आपका सदस्यता पहचान पत्र — भारतीय नमो संघ",
+    html: shell(
+      "आपका सदस्यता पहचान पत्र",
+      "Your membership ID card",
+      `
+      <p style="margin:0 0 16px 0;">आदरणीय ${escapeHtml(name)} जी,</p>
+      <p style="margin:0 0 16px 0;">
+        आपका <strong>भारतीय नमो संघ</strong> सदस्यता पहचान पत्र इस ईमेल के साथ
+        संलग्न है। कृपया इसे सुरक्षित रखें।
+      </p>
+      ${
+        membershipNumber
+          ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;background-color:${BRAND.saffronPale};border:1px solid ${BRAND.border};border-radius:8px;">
+               <tr>
+                 <td style="padding:14px 18px;font-family:Arial,Helvetica,sans-serif;">
+                   <div style="font-size:12px;color:${BRAND.muted};text-transform:uppercase;letter-spacing:0.5px;">सदस्यता क्रमांक / Membership number</div>
+                   <div style="font-size:22px;font-weight:bold;color:${BRAND.navy};margin-top:2px;">${membershipNumber}</div>
+                 </td>
+               </tr>
+             </table>`
+          : ""
+      }
+      <p style="margin:0 0 16px 0;">
+        कार्ड को छापने के लिए प्रिंट सेटिंग में <strong>100%</strong> चुनें —
+        इससे कार्ड वास्तविक आकार में छपेगा। आप इसे अपने खाते से कभी भी दोबारा
+        डाउनलोड कर सकते हैं।
+      </p>
+      ${button("मेरा पहचान पत्र देखें", `${SITE_URL}/dashboard/id-card`)}`
+    ),
+    text: `आदरणीय ${name} जी,
+
+आपका भारतीय नमो संघ सदस्यता पहचान पत्र इस ईमेल के साथ संलग्न है।${
+      membershipNumber ? `\n\nसदस्यता क्रमांक: ${membershipNumber}` : ""
+    }
+
+कार्ड छापते समय प्रिंट सेटिंग में 100% चुनें, जिससे यह वास्तविक आकार में छपे।
+
+अपने खाते से दोबारा डाउनलोड करें: ${SITE_URL}/dashboard/id-card`,
+  };
+}
+
+/** Accompanies the appointment letter PDF. */
+export function appointmentLetterEmail(
+  member: MemberSummary,
+  designation: string | null
+): EmailContent {
+  const name = fullName(member);
+
+  return {
+    subject: "आपका नियुक्ति पत्र — भारतीय नमो संघ",
+    html: shell(
+      "आपका नियुक्ति पत्र",
+      "Your appointment letter",
+      `
+      <p style="margin:0 0 16px 0;">आदरणीय ${escapeHtml(name)} जी,</p>
+      <p style="margin:0 0 16px 0;">
+        <strong>भारतीय नमो संघ</strong> में आपका नियुक्ति पत्र इस ईमेल के साथ
+        संलग्न है।
+      </p>
+      ${
+        designation
+          ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;background-color:${BRAND.saffronPale};border:1px solid ${BRAND.border};border-radius:8px;">
+               <tr>
+                 <td style="padding:14px 18px;font-family:Arial,Helvetica,sans-serif;">
+                   <div style="font-size:12px;color:${BRAND.muted};text-transform:uppercase;letter-spacing:0.5px;">पद / Designation</div>
+                   <div style="font-size:16px;font-weight:bold;color:${BRAND.navy};margin-top:2px;">${escapeHtml(designation)}</div>
+                 </td>
+               </tr>
+             </table>`
+          : ""
+      }
+      <p style="margin:0 0 16px 0;">
+        हमें पूर्ण विश्वास है कि आप संगठन के उद्देश्यों एवं मूल्यों के प्रति
+        निष्ठा एवं समर्पण के साथ कार्य करेंगे। आपके उज्ज्वल भविष्य के लिए हार्दिक
+        शुभकामनाएँ।
+      </p>
+      ${button("मेरा नियुक्ति पत्र देखें", `${SITE_URL}/dashboard/appointment-letter`)}`
+    ),
+    text: `आदरणीय ${name} जी,
+
+भारतीय नमो संघ में आपका नियुक्ति पत्र इस ईमेल के साथ संलग्न है।${
+      designation ? `\n\nपद: ${designation}` : ""
+    }
+
+हमें पूर्ण विश्वास है कि आप संगठन के उद्देश्यों एवं मूल्यों के प्रति निष्ठा एवं समर्पण के साथ कार्य करेंगे।
+
+अपने खाते में देखें: ${SITE_URL}/dashboard/appointment-letter`,
   };
 }

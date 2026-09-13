@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
+import { emailDocumentToMember } from "@/lib/email-document";
 import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 import { toPng } from "html-to-image";
@@ -43,6 +44,12 @@ interface MembershipCardProps {
     branch?: { name: string; state?: string | null } | null;
   };
   showDownload?: boolean;
+  /**
+   * Shows an "email to member" button beside the downloads. Admin screens only:
+   * the send endpoint requires an admin session, and a member emailing their own
+   * card to themselves is pointless.
+   */
+  allowEmail?: boolean;
 }
 
 interface Office {
@@ -326,13 +333,19 @@ function ScaledCard({ children }: { children: React.ReactNode }) {
 
 /* ---------- Component ---------- */
 
-export default function MembershipCard({ member, showDownload = true }: MembershipCardProps) {
+export default function MembershipCard({
+  member,
+  showDownload = true,
+  allowEmail = false,
+}: MembershipCardProps) {
   const frontRef = useRef<HTMLDivElement>(null);
   const backRef = useRef<HTMLDivElement>(null);
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const barcodeCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const [downloading, setDownloading] = useState<"front" | "back" | "pdf" | null>(null);
+  const [emailing, setEmailing] = useState(false);
+  const [emailNote, setEmailNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [side, setSide] = useState<"front" | "back">("front");
   const [org, setOrg] = useState<OrgContact | null>(null);
 
@@ -436,34 +449,68 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
     }
   };
 
+  /**
+   * Both sides, rasterised and wrapped in a two-page PDF at exact ID-1 size.
+   * Shared by the download button and the email button so a member can never
+   * receive a card that differs from the one an admin just previewed.
+   */
+  const buildPdfBlob = useCallback(async (): Promise<Blob | null> => {
+    if (!frontRef.current || !backRef.current) return null;
+
+    const [frontPng, backPng] = await Promise.all([
+      snapshot(frontRef.current),
+      snapshot(backRef.current),
+    ]);
+
+    const { pdf, Document, Page, Image: PdfImage } = await import("@react-pdf/renderer");
+    // Page is exactly ID-1 size so "print at 100%" gives a true-to-size card.
+    const pageW = CARD_MM_W * MM_TO_PT;
+    const pageH = CARD_MM_H * MM_TO_PT;
+    const pageStyle = { padding: 0, backgroundColor: "#ffffff" };
+    const imgStyle = { width: pageW, height: pageH };
+
+    const CardPdf = () => (
+      <Document title={`BNMS Membership Card ${membershipId}`}>
+        <Page size={[pageW, pageH]} style={pageStyle}>
+          <PdfImage src={frontPng} style={imgStyle} />
+        </Page>
+        <Page size={[pageW, pageH]} style={pageStyle}>
+          <PdfImage src={backPng} style={imgStyle} />
+        </Page>
+      </Document>
+    );
+
+    return pdf(<CardPdf />).toBlob();
+  }, [snapshot, membershipId]);
+
+  const handleEmailToMember = async () => {
+    setEmailing(true);
+    setEmailNote(null);
+    try {
+      const blob = await buildPdfBlob();
+      if (!blob) {
+        setEmailNote({ ok: false, text: "Could not render the card." });
+        return;
+      }
+      const result = await emailDocumentToMember(member.id, "id_card", blob);
+      setEmailNote(
+        result.sent
+          ? { ok: true, text: `Sent to ${result.to ?? "the member"}.` }
+          : { ok: false, text: result.reason ?? "Could not send." }
+      );
+    } catch (error) {
+      console.error("Failed to email the card:", error);
+      setEmailNote({ ok: false, text: "Could not render the card." });
+    } finally {
+      setEmailing(false);
+    }
+  };
+
   const handleDownloadPdf = async () => {
-    if (!frontRef.current || !backRef.current) return;
     setDownloading("pdf");
     try {
-      const [frontPng, backPng] = await Promise.all([
-        snapshot(frontRef.current),
-        snapshot(backRef.current),
-      ]);
-
-      const { pdf, Document, Page, Image: PdfImage } = await import("@react-pdf/renderer");
-      // Page is exactly ID-1 size so "print at 100%" gives a true-to-size card.
-      const pageW = CARD_MM_W * MM_TO_PT;
-      const pageH = CARD_MM_H * MM_TO_PT;
-      const pageStyle = { padding: 0, backgroundColor: "#ffffff" };
-      const imgStyle = { width: pageW, height: pageH };
-
-      const CardPdf = () => (
-        <Document title={`BNMS Membership Card ${membershipId}`}>
-          <Page size={[pageW, pageH]} style={pageStyle}>
-            <PdfImage src={frontPng} style={imgStyle} />
-          </Page>
-          <Page size={[pageW, pageH]} style={pageStyle}>
-            <PdfImage src={backPng} style={imgStyle} />
-          </Page>
-        </Document>
-      );
-
-      const blob = await pdf(<CardPdf />).toBlob();
+      const blob = await buildPdfBlob();
+      if (!blob) return;
       const url = URL.createObjectURL(blob);
       downloadDataUrl(url, `membership-card-${member.membership_number}.pdf`);
       URL.revokeObjectURL(url);
@@ -770,6 +817,31 @@ export default function MembershipCard({ member, showDownload = true }: Membersh
             </svg>
             {downloading === "pdf" ? "..." : "PDF"}
           </button>
+        </div>
+      )}
+
+      {allowEmail && (
+        <div className="w-full max-w-[400px]">
+          <button
+            onClick={handleEmailToMember}
+            disabled={emailing || downloading !== null}
+            className="w-full rounded-md bg-forest px-3 py-2.5 text-sm font-semibold text-white hover:bg-forest/90 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" {...iconProps}>
+              <path d="M4 4h16v16H4z" />
+              <polyline points="4 7 12 13 20 7" />
+            </svg>
+            {emailing ? "Sending..." : "Email ID card to member"}
+          </button>
+          {emailNote && (
+            <p
+              className={`mt-2 text-xs ${
+                emailNote.ok ? "text-forest" : "text-red-600"
+              }`}
+            >
+              {emailNote.text}
+            </p>
+          )}
         </div>
       )}
     </div>
