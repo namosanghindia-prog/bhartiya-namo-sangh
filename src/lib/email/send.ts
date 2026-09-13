@@ -41,8 +41,33 @@ export type SendResult =
  * onboarding@resend.dev only delivers to the Resend account's own address, so
  * it is useless for real members.
  */
+const DEFAULT_FROM = "Bhartiya Namo Sangh <noreply@bhartiyanamosangh.com>";
+
+/** `local@domain`, or `Display Name <local@domain>`. What Resend will accept. */
+const FROM_PATTERN =
+  /^(?:[^<>]*<\s*[^\s@<>]+@[^\s@<>]+\s*>|[^\s@<>]+@[^\s@<>]+)$/;
+
 function fromAddress(): string {
-  return process.env.EMAIL_FROM ?? "Bhartiya Namo Sangh <noreply@bhartiyanamosangh.com>";
+  const raw = process.env.EMAIL_FROM?.trim();
+  if (!raw) return DEFAULT_FROM;
+
+  // Env files strip the quotes around a value; a dashboard field keeps them, so
+  // a value copied out of .env.example arrives as `"Name <a@b>"` and Resend
+  // rejects the whole address with "Invalid `from` field".
+  const unquoted = raw.replace(/^(["'])([\s\S]*)\1$/, "$2").trim();
+
+  if (!FROM_PATTERN.test(unquoted)) {
+    // Falling back rather than failing: a misconfigured sender should not stop
+    // a member hearing that their membership was approved.
+    console.error(
+      `[email] EMAIL_FROM is not a usable address (${JSON.stringify(
+        unquoted
+      )}); falling back to ${DEFAULT_FROM}`
+    );
+    return DEFAULT_FROM;
+  }
+
+  return unquoted;
 }
 
 export async function sendEmail(options: SendEmailOptions): Promise<SendResult> {
