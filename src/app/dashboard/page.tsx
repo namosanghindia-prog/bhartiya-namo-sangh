@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import WhatsAppChannelCard from "@/components/WhatsAppChannelCard";
 
 interface MemberData {
   first_name: string;
@@ -141,6 +142,8 @@ export default function DashboardOverviewPage() {
           {member?.joined_date ? formatDate(member.joined_date) : "—"}
         </p>
       </div>
+
+      <WhatsAppChannelCard />
 
       {/* Quick stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
