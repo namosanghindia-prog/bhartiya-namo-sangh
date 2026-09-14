@@ -53,7 +53,14 @@ export default function RegistrationForm() {
       const body = await res.json().catch(() => null);
 
       if (!res.ok || !body?.registrationNumber) {
-        setError(body?.error ?? "पंजीकरण नहीं हो सका, कृपया पुनः प्रयास करें। / Registration failed, please try again.");
+        // The route always explains itself; a bare status here means the
+        // request never reached it (a platform timeout or error page), so say
+        // which status, rather than a generic line nobody can act on.
+        setError(
+          body?.error ??
+            `सर्वर से अप्रत्याशित उत्तर मिला (HTTP ${res.status}), पंजीकरण सुरक्षित नहीं हुआ। कृपया कुछ देर बाद पुनः प्रयास करें। / ` +
+              `The server gave an unexpected response (HTTP ${res.status}) and the registration was not saved. Please try again shortly.`
+        );
         return;
       }
 
