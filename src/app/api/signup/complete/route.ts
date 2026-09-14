@@ -6,12 +6,7 @@ import {
   AVATAR_MAX_MB,
   uploadAvatar,
 } from "@/lib/avatar";
-import { sendEmail } from "@/lib/email/send";
-import {
-  adminNotificationAddress,
-  presidentPhotoAttachment,
-} from "@/lib/email/recipients";
-import { newApplicationAdminEmail, welcomeEmail } from "@/lib/email/templates";
+import { sendNewApplicationEmails } from "@/lib/signup-notifications";
 
 /**
  * Finishes what the signup form could not.
@@ -189,58 +184,23 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Confirms the application landed. This is the only mail signup sends now
-  // that Supabase no longer has a confirmation link to deliver, so a member who
-  // hears nothing has genuinely not registered. Never fails the request.
-  // Embedded rather than linked, so the letter renders whatever the recipient's
-  // client does about remote images.
-  const presidentPhoto = await presidentPhotoAttachment(supabaseAdmin);
-
-  const welcome = welcomeEmail(
-    { firstName: member.first_name, lastName: member.last_name },
-    Boolean(presidentPhoto)
-  );
-
-  const mail = await sendEmail({
-    to: email,
-    subject: welcome.subject,
-    html: welcome.html,
-    text: welcome.text,
-    attachments: presidentPhoto
-      ? [{ ...presidentPhoto, contentId: "bnms-president" }]
-      : undefined,
+  // Confirms the application landed — the only mail signup sends now that
+  // Supabase has no confirmation link to deliver — and puts it in front of the
+  // admins. Never fails the request.
+  const { welcomeEmailSent, adminAlertSent } = await sendNewApplicationEmails(supabaseAdmin, {
+    firstName: member.first_name,
+    lastName: member.last_name,
+    email,
+    phone: member.phone ?? null,
+    city: updates.city ?? (member.city as string | null) ?? null,
   });
-
-  // And tell the admins there is something in the queue. Nothing about this
-  // application progresses until one of them looks at it.
-  const adminTo = await adminNotificationAddress(supabaseAdmin);
-  let adminAlertSent = false;
-
-  if (adminTo) {
-    const alert = newApplicationAdminEmail(
-      { firstName: member.first_name, lastName: member.last_name },
-      {
-        email,
-        phone: member.phone ?? null,
-        city: updates.city ?? (member.city as string | null) ?? null,
-      }
-    );
-
-    const adminMail = await sendEmail({
-      to: adminTo,
-      subject: alert.subject,
-      html: alert.html,
-      text: alert.text,
-    });
-    adminAlertSent = adminMail.sent;
-  }
 
   return NextResponse.json({
     success: true,
     photoSaved,
     photoError,
     fieldsSaved: filled,
-    welcomeEmailSent: mail.sent,
+    welcomeEmailSent,
     adminAlertSent,
   });
 }

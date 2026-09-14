@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Branch } from "@/lib/supabase/types";
+import StateDistrictSelect, { type StateDistrict } from "@/components/StateDistrictSelect";
+import BranchSelect, { branchesInState } from "@/components/BranchSelect";
+import GoogleIcon from "@/components/GoogleIcon";
+import MembershipDeclaration from "@/components/MembershipDeclaration";
+import MembershipTierPicker from "@/components/MembershipTierPicker";
+import { MEMBERSHIP_TIERS, type MembershipTier } from "@/lib/membership-tiers";
 import {
   AVATAR_ACCEPTED_TYPES,
   AVATAR_MAX_BYTES,
@@ -29,7 +35,7 @@ export default function SignupPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [branchesLoading, setBranchesLoading] = useState(true);
   const [declarationAccepted, setDeclarationAccepted] = useState(false);
-  const [membershipType, setMembershipType] = useState<"volunteer" | "normal" | "premium" | "lifetime">("volunteer");
+  const [membershipType, setMembershipType] = useState<MembershipTier>("volunteer");
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   // Kept alongside the preview so the photo can be uploaded server-side the
@@ -39,14 +45,35 @@ export default function SignupPage() {
   const [photoBusy, setPhotoBusy] = useState(false);
   const [showVipCode, setShowVipCode] = useState(false);
   const [vipCode, setVipCode] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [location, setLocation] = useState<StateDistrict>({ state: "", district: "" });
+  const [branchId, setBranchId] = useState("");
+  // Once the applicant picks a branch themselves, changing state stops re-picking it.
+  const [branchPicked, setBranchPicked] = useState(false);
 
-  const MEMBERSHIP_TIERS = {
-    volunteer: { name: "Volunteer", nameHi: "स्वयंसेवक", price: 101, period: "/year", periodHi: "/वर्ष" },
-    normal: { name: "Normal", nameHi: "सामान्य", price: 1100, period: "/year", periodHi: "/वर्ष" },
-    premium: { name: "Premium", nameHi: "प्रीमियम", price: 11000, period: "/year", periodHi: "/वर्ष" },
-    lifetime: { name: "Lifetime", nameHi: "आजीवन", price: 99999, period: "one-time", periodHi: "एकमुश्त" },
-  };
+  function handleLocationChange(next: StateDistrict) {
+    setLocation(next);
+    // Every state has its own office: preselect it when the state has exactly one.
+    if (!branchPicked && next.state !== location.state) {
+      const local = branchesInState(branches, next.state);
+      setBranchId(local.length === 1 ? local[0].id : "");
+    }
+  }
+
+  async function handleGoogleSignup() {
+    setError(null);
+    const supabase = createClient();
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        // Google supplies only a name and an email, so a new account is sent on
+        // to fill in the rest of the application.
+        redirectTo: window.location.origin + "/auth/callback?redirect=/auth/complete-application",
+      },
+    });
+    if (oauthError) setError(oauthError.message);
+  }
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function fetchBranches() {
@@ -363,6 +390,21 @@ export default function SignupPage() {
         Join Bhartiya Namo Sangh
       </p>
 
+      <button
+        type="button"
+        onClick={handleGoogleSignup}
+        className="mt-6 flex w-full items-center justify-center gap-2 rounded-md border border-saffron-200 px-4 py-2.5 text-sm font-medium text-navy hover:bg-saffron-50 transition-colors"
+      >
+        <GoogleIcon />
+        Google से जुड़ें / Continue with Google
+      </button>
+
+      <div className="mt-6 flex items-center gap-3">
+        <div className="flex-1 border-t border-saffron-100" />
+        <span className="text-xs text-navy/40">या फ़ॉर्म भरें / OR fill in the form</span>
+        <div className="flex-1 border-t border-saffron-100" />
+      </div>
+
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         {/* Profile Photo Upload */}
         <div className="rounded-lg border-2 border-dashed border-saffron-300 bg-saffron-50/50 p-4">
@@ -526,64 +568,41 @@ export default function SignupPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label
-              htmlFor="city"
-              className="block text-sm font-medium text-navy/80 mb-1"
-            >
-              <span className="block">जिला</span>
-              <span className="text-xs text-navy/60">District</span>
-            </label>
-            <input
-              id="city"
-              name="city"
-              required
-              className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="state"
-              className="block text-sm font-medium text-navy/80 mb-1"
-            >
-              <span className="block">राज्य</span>
-              <span className="text-xs text-navy/60">State</span>
-            </label>
-            <input
-              id="state"
-              name="state"
-              required
-              className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
-            />
-          </div>
+          <StateDistrictSelect
+            value={location}
+            onChange={handleLocationChange}
+            stateId="state"
+            stateName="state"
+            districtId="city"
+            districtName="city"
+            required
+            labelClassName="block text-sm font-medium text-navy/80 mb-1"
+            fieldClassName="w-full rounded-md border border-saffron-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+            stateLabel={
+              <>
+                <span className="block">राज्य</span>
+                <span className="text-xs text-navy/60">State</span>
+              </>
+            }
+            districtLabel={
+              <>
+                <span className="block">जिला</span>
+                <span className="text-xs text-navy/60">District</span>
+              </>
+            }
+          />
         </div>
 
-        <div>
-          <label
-            htmlFor="branch"
-            className="block text-sm font-medium text-navy/80 mb-1"
-          >
-            <span className="block">शाखा चुनें</span>
-            <span className="text-xs text-navy/60">Select your Branch</span>
-          </label>
-          <select
-            id="branch"
-            name="branch"
-            required
-            defaultValue=""
-            disabled={branchesLoading}
-            className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400 disabled:bg-gray-100"
-          >
-            <option value="" disabled>
-              {branchesLoading ? "Loading branches..." : "Choose a branch"}
-            </option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name} — {b.city}, {b.state}
-              </option>
-            ))}
-          </select>
-        </div>
+        <BranchSelect
+          branches={branches}
+          loading={branchesLoading}
+          state={location.state}
+          value={branchId}
+          onChange={(id) => {
+            setBranchId(id);
+            setBranchPicked(true);
+          }}
+        />
 
         {/* VIP Code Toggle */}
         <div className="border-t border-saffron-100 pt-4">
@@ -619,74 +638,7 @@ export default function SignupPage() {
 
         {/* Membership Type Selection - hidden when VIP code is entered */}
         {!(showVipCode && vipCode.trim()) && (
-          <div>
-            <label className="block text-sm font-medium text-navy/80 mb-2">
-              <span className="block">सदस्यता प्रकार चुनें</span>
-              <span className="text-xs text-navy/60">Select Membership Type</span>
-            </label>
-            <div className="grid grid-cols-1 gap-3">
-              {(Object.keys(MEMBERSHIP_TIERS) as Array<keyof typeof MEMBERSHIP_TIERS>).map((tier) => {
-                const info = MEMBERSHIP_TIERS[tier];
-                const isSelected = membershipType === tier;
-                const isLifetime = tier === "lifetime";
-                const isPremium = tier === "premium";
-                return (
-                  <label
-                    key={tier}
-                    className={`relative flex items-center gap-3 rounded-lg border-2 p-3 cursor-pointer transition-all ${
-                      isSelected
-                        ? isLifetime
-                          ? "border-gold bg-gold/5"
-                          : isPremium
-                          ? "border-saffron-500 bg-saffron-50"
-                          : "border-saffron-400 bg-saffron-50"
-                        : "border-saffron-200 hover:border-saffron-300"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="membershipType"
-                      value={tier}
-                      checked={isSelected}
-                      onChange={() => setMembershipType(tier)}
-                      className="sr-only"
-                    />
-                    <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
-                      isSelected
-                        ? isLifetime
-                          ? "border-gold"
-                          : "border-saffron-600"
-                        : "border-saffron-300"
-                    }`}>
-                      {isSelected && (
-                        <div className={`h-2.5 w-2.5 rounded-full ${
-                          isLifetime ? "bg-gold" : "bg-saffron-600"
-                        }`} />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className={`font-semibold ${
-                          isLifetime ? "text-gold" : isPremium ? "text-saffron-700" : "text-navy"
-                        }`}>
-                          {info.nameHi} / {info.name}
-                        </span>
-                        {isLifetime && (
-                          <span className="text-[10px] bg-gold/20 text-gold px-1.5 py-0.5 rounded font-medium">
-                            BEST VALUE
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-sm text-navy/70">
-                        <span className="font-semibold text-navy">₹{info.price.toLocaleString("en-IN")}</span>
-                        <span className="text-xs"> {info.period}</span>
-                      </div>
-                    </div>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
+          <MembershipTierPicker value={membershipType} onChange={setMembershipType} />
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -732,34 +684,7 @@ export default function SignupPage() {
           </div>
         </div>
 
-        {/* Declaration Section */}
-        <div className="rounded-lg border border-saffron-300 bg-saffron-50 p-4 mt-6">
-          <h3 className="font-heading text-sm font-semibold text-navy mb-2">
-            घोषणा / Declaration
-          </h3>
-          <p className="text-sm text-navy/80 leading-relaxed mb-3">
-            मैं भारतीय नमो संघ की विचारधारा, उद्देश्यों एवं संविधान का पूर्ण सम्मान
-            करते हुए संगठन के नियमों का पालन करने का संकल्प लेता/लेती हूँ। मुझे
-            विश्वास है कि यदि मुझे संगठन में मेरी योग्यता एवं क्षमता के अनुरूप किसी
-            पद पर सेवा करने का अवसर प्रदान किया जाता है, तो मैं पूर्ण निष्ठा,
-            ईमानदारी एवं समर्पण के साथ अपने दायित्वों का निर्वहन करूँगा/करूँगी तथा
-            संगठन के विस्तार एवं समाजहित के कार्यों में सक्रिय योगदान दूँगा/दूँगी।
-          </p>
-          <p className="text-xs text-navy/60 italic mb-4">
-            I pledge to uphold the organization&apos;s principles and serve with full dedication and integrity.
-          </p>
-          <label className="flex items-start gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={declarationAccepted}
-              onChange={(e) => setDeclarationAccepted(e.target.checked)}
-              className="mt-0.5 rounded border-saffron-400 text-saffron-700 focus:ring-saffron-400"
-            />
-            <span className="text-sm text-navy/80">
-              मैं उपरोक्त घोषणा से सहमत हूँ / I agree to the above declaration
-            </span>
-          </label>
-        </div>
+        <MembershipDeclaration accepted={declarationAccepted} onChange={setDeclarationAccepted} />
 
         <div className="space-y-2 text-sm text-navy/70">
           <label className="flex items-start gap-2">

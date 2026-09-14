@@ -67,6 +67,34 @@ Click **Deploy**. Vercel will run `npm run build` and go live at a
 
 ---
 
+## Google sign-in ("Continue with Google")
+
+The buttons on the login and signup pages do nothing useful until Google is
+switched on in Supabase. One-time setup:
+
+1. **Google Cloud Console** → APIs & Services → Credentials → *Create
+   credentials* → *OAuth client ID* → type **Web application**.
+   - Authorised JavaScript origins: `https://www.bhartiyanamosangh.com`
+     (and `http://localhost:3000` for local testing)
+   - Authorised redirect URI — Supabase's, not the site's:
+     `https://prkfshuqdhjaxkuzjrwn.supabase.co/auth/v1/callback`
+   - On the *OAuth consent screen*, set the app name, support email and logo,
+     and publish it (in "Testing" only listed test users can sign in).
+2. **Supabase dashboard** → Authentication → Sign In / Providers → **Google** →
+   enable, paste the Client ID and Client Secret, save.
+3. **Supabase dashboard** → Authentication → URL Configuration → *Redirect URLs*,
+   add `https://www.bhartiyanamosangh.com/auth/callback` (plus
+   `https://bhartiyanamosangh.com/auth/callback` and
+   `http://localhost:3000/auth/callback`). Without these Supabase sends people
+   to the Site URL instead of back to the app.
+
+What happens after sign-in: Google only provides a name and an email, so a new
+Google account lands on **/auth/complete-application** and stays there until
+the photo, father's name, phone, address, state/district, branch, plan and
+declaration are sent. Only then do the welcome and new-application emails go
+out and the application reach Admin → Approvals. An existing member who signs
+in with Google using the same email goes straight to their dashboard.
+
 ## After deploying — verify the slider
 
 1. Visit `/admin/homepage-slider`, edit a slide, click **Save Changes**

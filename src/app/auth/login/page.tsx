@@ -6,6 +6,7 @@ import { useState, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { flushPendingAvatar } from "@/lib/pending-avatar";
 import { redeemPendingVipCoupon } from "@/lib/vip-coupon";
+import GoogleIcon from "@/components/GoogleIcon";
 
 function LoginForm() {
   const router = useRouter();
@@ -20,6 +21,8 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(
     searchParams.get("error") === "unavailable"
       ? "We could not reach the server just then. Please try signing in again."
+      : searchParams.get("error") === "auth_failed"
+      ? "Sign-in did not complete. Please try again."
       : null
   );
   const [vipMessage, setVipMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -97,7 +100,7 @@ function LoginForm() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?redirect=${redirectTo}`,
+        redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`,
       },
     });
   }
@@ -206,8 +209,9 @@ function LoginForm() {
         <button
           type="button"
           onClick={handleGoogleLogin}
-          className="w-full rounded-md border border-saffron-200 px-4 py-2.5 text-sm font-medium text-navy hover:bg-saffron-50 transition-colors"
+          className="flex w-full items-center justify-center gap-2 rounded-md border border-saffron-200 px-4 py-2.5 text-sm font-medium text-navy hover:bg-saffron-50 transition-colors"
         >
+          <GoogleIcon />
           Continue with Google
         </button>
       </div>

@@ -58,7 +58,10 @@ export async function updateSession(request: NextRequest) {
   );
 
   const path = request.nextUrl.pathname;
-  const isProtected = path.startsWith("/dashboard") || path.startsWith("/admin");
+  // Where an account made with "Continue with Google" fills in the rest of its application.
+  const isCompletingApplication = path.startsWith("/auth/complete-application");
+  const isProtected =
+    path.startsWith("/dashboard") || path.startsWith("/admin") || isCompletingApplication;
 
   const authResult = await withDeadline(supabase.auth.getUser(), "auth.getUser");
 
@@ -89,7 +92,11 @@ export async function updateSession(request: NextRequest) {
   // For authenticated users accessing dashboard, check member status
   if (user && path.startsWith("/dashboard") && !path.startsWith("/dashboard/account-status")) {
     const result = await withDeadline(
-      supabase.from("members").select("status, role").eq("id", user.id).single(),
+      supabase
+        .from("members")
+        .select("status, role, declaration_accepted")
+        .eq("id", user.id)
+        .single(),
       "members.status"
     );
     const member = result?.data;
@@ -98,6 +105,15 @@ export async function updateSession(request: NextRequest) {
     // The page's own queries still run under RLS, so this cannot expose data —
     // at worst a member sees a shell they would have been redirected away from.
     if (member) {
+      // Signed up with Google and has not sent the rest of the application.
+      // Every application from the email form accepts the declaration, so only
+      // those accounts are pending without it.
+      if (member.status === "pending" && !member.declaration_accepted) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/auth/complete-application";
+        url.search = "";
+        return NextResponse.redirect(url);
+      }
       if (member.status === "pending") {
         const url = request.nextUrl.clone();
         url.pathname = "/dashboard/account-status";
@@ -143,7 +159,13 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Redirect authenticated users away from auth pages (except reset-password and callback)
-  if (user && path.startsWith("/auth") && !path.includes("/reset-password") && !path.includes("/callback")) {
+  if (
+    user &&
+    path.startsWith("/auth") &&
+    !path.includes("/reset-password") &&
+    !path.includes("/callback") &&
+    !isCompletingApplication
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
