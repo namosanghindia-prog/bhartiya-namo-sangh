@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Branch } from "@/lib/supabase/types";
+import StateDistrictSelect from "@/components/StateDistrictSelect";
 
 interface BranchWithCount extends Branch {
   member_count: number;
@@ -354,30 +355,24 @@ export default function AdminBranchesPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-navy/70 mb-1">
-                      City <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      placeholder="e.g., New Delhi"
-                      className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-navy/70 mb-1">
-                      State <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.state}
-                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                      placeholder="e.g., Delhi"
-                      className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
-                    />
-                  </div>
+                  <StateDistrictSelect
+                    value={{ state: formData.state, district: formData.city }}
+                    onChange={({ state, district }) =>
+                      setFormData((prev) => ({ ...prev, state, city: district }))
+                    }
+                    labelClassName="block text-sm font-medium text-navy/70 mb-1"
+                    fieldClassName="w-full rounded-md border border-saffron-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+                    stateLabel={
+                      <>
+                        State <span className="text-red-500">*</span>
+                      </>
+                    }
+                    districtLabel={
+                      <>
+                        District / City <span className="text-red-500">*</span>
+                      </>
+                    }
+                  />
                 </div>
 
                 <div>

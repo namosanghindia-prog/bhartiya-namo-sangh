@@ -11,6 +11,8 @@ import {
 } from "@/lib/avatar";
 import { shrinkImage } from "@/lib/image";
 import type { Member, Branch } from "@/lib/supabase/types";
+import StateDistrictSelect, { type StateDistrict } from "@/components/StateDistrictSelect";
+import { canonicalStateName } from "@/lib/india-locations";
 
 interface ProfileChangeRequest {
   id: string;
@@ -39,6 +41,8 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Mirrors members.state / members.city (the district); filled in once the member loads.
+  const [location, setLocation] = useState<StateDistrict>({ state: "", district: "" });
 
   useEffect(() => {
     async function loadData() {
@@ -59,7 +63,13 @@ export default function ProfilePage() {
           .maybeSingle(),
       ]);
 
-      if (memberRes.data) setMember(memberRes.data);
+      if (memberRes.data) {
+        setMember(memberRes.data);
+        setLocation({
+          state: canonicalStateName(memberRes.data.state),
+          district: memberRes.data.city ?? "",
+        });
+      }
       if (branchesRes.data) setBranches(branchesRes.data);
       if (requestRes.data) setChangeRequest(requestRes.data as ProfileChangeRequest);
       setLoading(false);
@@ -416,24 +426,18 @@ export default function ProfilePage() {
         {/* District and state come in at signup. They were not editable here,
             so a member who saw them missing or wrong had no way to fix them. */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm text-navy/70 mb-1">District</label>
-            <input
-              name="city"
-              defaultValue={member.city ?? ""}
-              placeholder="Your district"
-              className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-navy/70 mb-1">State</label>
-            <input
-              name="state"
-              defaultValue={member.state ?? ""}
-              placeholder="Your state"
-              className="w-full rounded-md border border-saffron-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
-            />
-          </div>
+          <StateDistrictSelect
+            value={location}
+            onChange={setLocation}
+            stateId="state"
+            stateName="state"
+            districtId="city"
+            districtName="city"
+            labelClassName="block text-sm text-navy/70 mb-1"
+            fieldClassName="w-full rounded-md border border-saffron-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+            stateLabel="State"
+            districtLabel="District"
+          />
         </div>
 
         <div>

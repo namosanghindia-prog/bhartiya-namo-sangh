@@ -10,6 +10,8 @@ import {
   formatRupees,
   type IdCardOrder,
 } from "@/lib/idCardOrders";
+import { canonicalStateName } from "@/lib/india-locations";
+import StateDistrictSelect from "./StateDistrictSelect";
 
 interface Props {
   member: {
@@ -49,7 +51,7 @@ export default function IdCardOrderPanel({ member }: Props) {
     phone: member.phone ?? "",
     address_line: member.address ?? "",
     city: member.city ?? "",
-    state: member.state ?? "",
+    state: canonicalStateName(member.state),
     pincode: member.pincode ?? "",
   });
 
@@ -210,24 +212,17 @@ export default function IdCardOrderPanel({ member }: Props) {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <label className="block text-xs font-semibold text-navy/70 mb-1">City</label>
-              <input
-                required
-                value={form.city}
-                onChange={(e) => update("city", e.target.value)}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-navy/70 mb-1">State</label>
-              <input
-                required
-                value={form.state}
-                onChange={(e) => update("state", e.target.value)}
-                className={inputClass}
-              />
-            </div>
+            <StateDistrictSelect
+              value={{ state: form.state, district: form.city }}
+              onChange={({ state, district }) =>
+                setForm((f) => ({ ...f, state, city: district }))
+              }
+              required
+              labelClassName="block text-xs font-semibold text-navy/70 mb-1"
+              fieldClassName={`${inputClass} bg-white`}
+              stateLabel="State"
+              districtLabel="District"
+            />
             <div>
               <label className="block text-xs font-semibold text-navy/70 mb-1">Pincode</label>
               <input
