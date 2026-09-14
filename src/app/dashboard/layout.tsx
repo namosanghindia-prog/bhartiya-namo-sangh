@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/events", label: "My Events", icon: "📅" },
   { href: "/dashboard/donations", label: "Donations", icon: "💚" },
   { href: "/dashboard/activity", label: "Activity & Hours", icon: "📊" },
+  { href: "/dashboard/moderator", label: "Moderator Mode", icon: "🛡️" },
 ];
 
 export default function DashboardLayout({
