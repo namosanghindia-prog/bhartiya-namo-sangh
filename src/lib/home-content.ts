@@ -1,4 +1,5 @@
 import type { Copy } from "@/lib/locale";
+import { INDIA_MAP_BOUNDS, INDIA_MAP_VIEW } from "@/lib/india-official-map";
 
 export type HomeBranch = {
   id: string;
@@ -591,85 +592,37 @@ export const NETWORK_EDGES: [string, string][] = [
   ["Chennai", "Thiruvananthapuram"],
 ];
 
-/** Lon/lat outline of the Indian mainland, stylised but geographically honest. */
-export const INDIA_OUTLINE: [number, number][] = [
-  [74.4, 36.8],
-  [75.6, 36.9],
-  [77.2, 35.5],
-  [78.4, 34.0],
-  [78.0, 32.5],
-  [79.0, 31.3],
-  [80.4, 30.8],
-  [80.9, 30.2],
-  [84.0, 29.0],
-  [88.1, 27.8],
-  [88.9, 27.2],
-  [91.6, 27.6],
-  [95.4, 27.7],
-  [97.2, 28.0],
-  [96.2, 26.8],
-  [95.0, 26.0],
-  [94.5, 25.2],
-  [94.3, 24.3],
-  [93.4, 22.9],
-  [92.4, 23.4],
-  [91.6, 23.2],
-  [89.8, 26.0],
-  [88.5, 26.4],
-  [88.2, 21.6],
-  [86.7, 20.7],
-  [85.0, 19.4],
-  [83.2, 17.7],
-  [80.3, 15.8],
-  [80.25, 13.2],
-  [80.1, 11.7],
-  [79.3, 9.9],
-  [77.54, 8.08],
-  [76.4, 9.3],
-  [76.1, 10.8],
-  [75.6, 12.4],
-  [74.6, 14.5],
-  [73.4, 16.8],
-  [72.85, 18.9],
-  [72.72, 20.4],
-  [72.8, 21.6],
-  [71.4, 20.7],
-  [69.9, 20.8],
-  [68.9, 22.4],
-  [68.7, 23.3],
-  [69.8, 22.6],
-  [71.8, 23.0],
-  [72.1, 24.2],
-  [70.4, 24.7],
-  [69.8, 26.6],
-  [71.6, 27.9],
-  [73.2, 28.6],
-  [74.4, 30.9],
-  [74.9, 32.5],
-  [74.1, 34.2],
-  [74.4, 36.8],
-];
-
-export const MAP_BOUNDS = {
-  minLon: 67.4,
-  maxLon: 98.4,
-  minLat: 6.0,
-  maxLat: 37.6,
-};
-
-export function projectLonLat(lon: number, lat: number, w = 1000, h = 1140) {
-  const x = ((lon - MAP_BOUNDS.minLon) / (MAP_BOUNDS.maxLon - MAP_BOUNDS.minLon)) * w;
-  const y = ((MAP_BOUNDS.maxLat - lat) / (MAP_BOUNDS.maxLat - MAP_BOUNDS.minLat)) * h;
+export function projectLonLat(
+  lon: number,
+  lat: number,
+  w = INDIA_MAP_VIEW.w,
+  h = INDIA_MAP_VIEW.h
+) {
+  const x =
+    ((lon - INDIA_MAP_BOUNDS.minLon) /
+      (INDIA_MAP_BOUNDS.maxLon - INDIA_MAP_BOUNDS.minLon)) *
+    w;
+  const y =
+    ((INDIA_MAP_BOUNDS.maxLat - lat) /
+      (INDIA_MAP_BOUNDS.maxLat - INDIA_MAP_BOUNDS.minLat)) *
+    h;
   return { x, y };
 }
 
-export function indiaOutlinePath(w = 1000, h = 1140) {
-  return (
-    INDIA_OUTLINE.map((pt, i) => {
-      const { x, y } = projectLonLat(pt[0], pt[1], w, h);
-      return `${i === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`;
-    }).join(" ") + " Z"
-  );
+/** GADM-era polygons keep Telangana inside Andhra Pradesh. */
+export function statesForPolygon(polygonName: string) {
+  if (polygonName === "Andhra Pradesh") return ["Andhra Pradesh", "Telangana"];
+  if (
+    polygonName === "Dadra and Nagar Haveli" ||
+    polygonName === "Daman and Diu"
+  ) {
+    return [
+      "Dadra and Nagar Haveli",
+      "Daman and Diu",
+      "Dadra and Nagar Haveli and Daman and Diu",
+    ];
+  }
+  return [polygonName];
 }
 
 export function formatHomeDate(iso: string, locale: "en" | "hi") {

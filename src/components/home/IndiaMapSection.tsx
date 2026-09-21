@@ -6,21 +6,19 @@ import { T, useLocale, useT } from "@/lib/locale";
 import {
   FALLBACK_ACTIVITIES,
   formatHomeDate,
-  indiaOutlinePath,
   matchBranchToCity,
   NETWORK_CITIES,
   NETWORK_EDGES,
   projectLonLat,
+  statesForPolygon,
   type HomeBranch,
   type HomeEvent,
   type HomePhoto,
   type NetworkCity,
 } from "@/lib/home-content";
+import { INDIA_MAP_VIEW, INDIA_STATE_PATHS } from "@/lib/india-official-map";
 import Reveal from "@/components/home/Reveal";
 
-const VIEW_W = 1000;
-const VIEW_H = 1140;
-const OUTLINE = indiaOutlinePath(VIEW_W, VIEW_H);
 const CITY_INDEX = new Map(NETWORK_CITIES.map((c) => [c.city, c]));
 
 type Pin = NetworkCity & {
@@ -102,8 +100,8 @@ export default function IndiaMapSection({
           </T>
           <T as="p" className="mt-4 max-w-2xl text-white/65">
             {{
-              en: "Click a glowing city to see branches, members and recent work. Dimmer points mark the wider network still taking root.",
-              hi: "शाखाएँ, सदस्य और हालिया कार्य देखने के लिए चमकते शहर पर क्लिक करें। हल्के बिंदु उस व्यापक नेटवर्क को दर्शाते हैं जो अभी जड़ें जमा रहा है।",
+              en: "Click a state or a glowing city. The outline follows the Survey of India / Government of India international boundary.",
+              hi: "किसी राज्य या चमकते शहर पर क्लिक करें। यह रेखा सर्वे ऑफ इंडिया / भारत सरकार की अंतरराष्ट्रीय सीमा के अनुसार है।",
             }}
           </T>
         </Reveal>
@@ -130,36 +128,54 @@ export default function IndiaMapSection({
         <div className="mt-6 grid grid-cols-1 items-start gap-10 lg:grid-cols-12">
           <div className="lg:col-span-7">
             <svg
-              viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+              viewBox={`0 0 ${INDIA_MAP_VIEW.w} ${INDIA_MAP_VIEW.h}`}
               className="h-auto w-full"
               role="img"
               aria-label={t({
-                en: "Interactive map of India showing branch cities",
-                hi: "शाखा शहरों वाला भारत का इंटरैक्टिव मानचित्र",
+                en: "Interactive map of India as per Survey of India, showing branch cities",
+                hi: "सर्वे ऑफ इंडिया के अनुसार भारत का इंटरैक्टिव मानचित्र, शाखा शहरों के साथ",
               })}
             >
-              <path
-                d={OUTLINE}
-                fill="rgba(255,255,255,0.04)"
-                stroke="rgba(255,255,255,0.22)"
-                strokeWidth="2.4"
-                strokeLinejoin="round"
-              />
-              <ellipse
-                cx="850"
-                cy="980"
-                rx="10"
-                ry="28"
-                fill="rgba(255,255,255,0.05)"
-                stroke="rgba(255,255,255,0.2)"
-                strokeWidth="1.5"
-              />
+              {INDIA_STATE_PATHS.map((state) => {
+                const names = statesForPolygon(state.name);
+                const hasWork = pins.some(
+                  (pin) => pin.branches.length > 0 && names.includes(pin.state)
+                );
+                const isSelected = names.includes(selected.state);
+                return (
+                  <path
+                    key={state.id}
+                    d={state.d}
+                    fill={
+                      isSelected
+                        ? "rgba(255,107,53,0.28)"
+                        : hasWork
+                          ? "rgba(255,166,81,0.12)"
+                          : "rgba(255,255,255,0.05)"
+                    }
+                    stroke="rgba(255,255,255,0.28)"
+                    strokeWidth="0.8"
+                    strokeLinejoin="round"
+                    className="cursor-pointer hover:fill-[rgba(255,107,53,0.2)]"
+                    onClick={() => {
+                      const match =
+                        pins.find(
+                          (pin) =>
+                            names.includes(pin.state) && pin.branches.length > 0
+                        ) || pins.find((pin) => names.includes(pin.state));
+                      if (match) setSelectedCity(match.city);
+                    }}
+                  >
+                    <title>{locale === "hi" ? state.nameHi : state.name}</title>
+                  </path>
+                );
+              })}
               {NETWORK_EDGES.map(([a, b]) => {
                 const from = CITY_INDEX.get(a);
                 const to = CITY_INDEX.get(b);
                 if (!from || !to) return null;
-                const p1 = projectLonLat(from.lon, from.lat, VIEW_W, VIEW_H);
-                const p2 = projectLonLat(to.lon, to.lat, VIEW_W, VIEW_H);
+                const p1 = projectLonLat(from.lon, from.lat);
+                const p2 = projectLonLat(to.lon, to.lat);
                 return (
                   <line
                     key={`${a}-${b}`}
@@ -174,7 +190,7 @@ export default function IndiaMapSection({
                 );
               })}
               {pins.map((pin) => {
-                const p = projectLonLat(pin.lon, pin.lat, VIEW_W, VIEW_H);
+                const p = projectLonLat(pin.lon, pin.lat);
                 const active = pin.branches.length > 0;
                 const isSelected = pin.city === selectedCity;
                 return (
@@ -203,6 +219,14 @@ export default function IndiaMapSection({
                 );
               })}
             </svg>
+            <p className="mt-3 text-[11px] leading-relaxed text-white/40">
+              <T>
+                {{
+                  en: "International boundary as depicted by the Survey of India, Government of India — including the full extent of Jammu & Kashmir, Ladakh and Arunachal Pradesh.",
+                  hi: "अंतरराष्ट्रीय सीमा सर्वे ऑफ इंडिया, भारत सरकार के अनुसार — जम्मू-कश्मीर, लद्दाख और अरुणाचल प्रदेश की पूर्ण सीमा सहित।",
+                }}
+              </T>
+            </p>
             <div className="mt-3 hidden flex-wrap gap-2 lg:flex">
               {activePins.map((pin) => (
                 <button
