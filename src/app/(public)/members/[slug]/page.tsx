@@ -60,13 +60,13 @@ export default async function MemberProfilePage({
     <article className="bg-[#f6f4f0] pb-24">
       <div className="bg-navy text-white">
         <div className="mx-auto grid max-w-5xl grid-cols-1 gap-10 px-4 py-20 sm:px-6 lg:grid-cols-12 lg:px-8 lg:py-28">
-          <div className="relative mx-auto h-64 w-64 overflow-hidden rounded-2xl bg-white/10 lg:col-span-4 lg:mx-0 lg:h-80 lg:w-full">
+          <div className="relative mx-auto aspect-[4/5] w-56 overflow-hidden rounded-2xl bg-white/10 sm:w-64 lg:col-span-4 lg:mx-0 lg:w-full">
             {photo ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={photo}
                 alt={`${member.first_name} ${member.last_name}`}
-                className="h-full w-full object-cover object-[center_18%]"
+                className="absolute inset-0 h-full w-full object-cover object-top"
               />
             ) : (
               <div className="flex h-full items-center justify-center font-heading text-6xl text-white/30">

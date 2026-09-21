@@ -29,8 +29,8 @@ export default function MemberCard({
       }`}
     >
       <div
-        className={`relative bg-[#f6f4f0] ${
-          featured ? "sm:w-[280px] sm:shrink-0" : "aspect-[4/5]"
+        className={`relative overflow-hidden bg-[#f6f4f0] ${
+          featured ? "aspect-[4/5] sm:w-[280px] sm:shrink-0 sm:aspect-auto sm:min-h-[350px]" : "aspect-[4/5]"
         }`}
       >
         {photo ? (
@@ -38,7 +38,7 @@ export default function MemberCard({
           <img
             src={photo}
             alt=""
-            className={`h-full w-full object-cover ${featured ? "min-h-[280px] object-[center_18%]" : "object-cover"}`}
+            className="absolute inset-0 h-full w-full object-cover object-top"
           />
         ) : (
           <div className="flex h-full min-h-[220px] w-full items-center justify-center font-heading text-4xl font-semibold text-navy/25">
