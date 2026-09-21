@@ -68,7 +68,7 @@ export default async function GalleryPage() {
 
       {/* ALBUM JUMP BAR — only earns its space once there are several albums */}
       {albums.length > 1 && (
-        <nav className="bg-white border-b border-saffron-100 sticky top-16 z-40">
+        <nav className="bg-white border-b border-saffron-100 sticky top-[var(--header-height)] z-40">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
             <div className="flex gap-2 overflow-x-auto">
               {albums.map((album) => (

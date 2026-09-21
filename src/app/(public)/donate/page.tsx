@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 const PRESET_AMOUNTS = [500, 1000, 5000, 10000];
 
@@ -26,9 +27,32 @@ const RECENT_DONATIONS = [
 ];
 
 export default function DonatePage() {
+  return (
+    <Suspense
+      fallback={
+        <section className="bg-saffron-gradient text-white">
+          <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 lg:px-8">
+            <h1 className="font-heading text-4xl font-semibold sm:text-5xl">
+              Support Our Mission
+            </h1>
+          </div>
+        </section>
+      }
+    >
+      <DonateInner />
+    </Suspense>
+  );
+}
+
+function DonateInner() {
+  const searchParams = useSearchParams();
+  const urlPurpose = searchParams.get("purpose");
+  const fromUrl =
+    urlPurpose && PURPOSES.some((p) => p.id === urlPurpose) ? urlPurpose : null;
   const [amount, setAmount] = useState<number | "custom">(1000);
   const [customAmount, setCustomAmount] = useState("");
-  const [purpose, setPurpose] = useState("general");
+  const [pickedPurpose, setPickedPurpose] = useState<string | null>(null);
+  const purpose = pickedPurpose ?? fromUrl ?? "general";
   const [anonymous, setAnonymous] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -136,7 +160,7 @@ export default function DonatePage() {
                       name="purpose"
                       value={p.id}
                       checked={purpose === p.id}
-                      onChange={() => setPurpose(p.id)}
+                      onChange={() => setPickedPurpose(p.id)}
                       className="text-saffron-700"
                     />
                     {p.label}

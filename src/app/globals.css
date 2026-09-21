@@ -67,6 +67,25 @@
     "Kohinoor Devanagari", "Sanskrit Text", sans-serif;
 }
 
+@font-face {
+  font-family: "Noto Sans Devanagari";
+  src: url("/fonts/NotoSansDevanagari-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Noto Sans Devanagari";
+  src: url("/fonts/NotoSansDevanagari-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-display: swap;
+}
+
+html {
+  scroll-behavior: smooth;
+  --header-height: 5rem;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -80,4 +99,126 @@ h1, h2, h3, h4, h5, h6 {
 /* Reusable brand gradient */
 .bg-saffron-gradient {
   background: linear-gradient(135deg, var(--saffron-700) 0%, var(--saffron-400) 100%);
+}
+
+/* Homepage motion */
+.home-kenburns {
+  animation: home-kenburns 14s ease-out forwards;
+  transform-origin: center;
+}
+
+@keyframes home-kenburns {
+  from {
+    transform: scale(1.04);
+  }
+  to {
+    transform: scale(1.16) translate(-1.4%, -0.8%);
+  }
+}
+
+.home-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+}
+
+.home-reveal-in {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.home-delay-1 { transition-delay: 80ms; }
+.home-delay-2 { transition-delay: 160ms; }
+.home-delay-3 { transition-delay: 240ms; }
+
+.home-dash {
+  stroke-dasharray: 6 8;
+  animation: home-dash 18s linear infinite;
+}
+
+@keyframes home-dash {
+  to {
+    stroke-dashoffset: -280;
+  }
+}
+
+.home-map-pulse {
+  transform-origin: center;
+  animation: home-map-pulse 2.8s ease-out infinite;
+}
+
+@keyframes home-map-pulse {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+}
+
+.home-scroll-cue span {
+  animation: home-scroll-cue 1.8s ease-in-out infinite;
+}
+
+@keyframes home-scroll-cue {
+  0%, 100% { transform: translateY(0); opacity: 0.4; }
+  50% { transform: translateY(8px); opacity: 1; }
+}
+
+.home-globe {
+  background:
+    radial-gradient(circle at 32% 28%, #2a5473 0%, #0a1929 62%, #050b14 100%);
+  box-shadow:
+    inset -28px -18px 50px rgba(0, 0, 0, 0.45),
+    0 0 80px rgba(255, 107, 53, 0.12);
+}
+
+.home-globe-spin {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 18px,
+      rgba(255, 255, 255, 0.05) 18px 19px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 22px,
+      rgba(255, 255, 255, 0.04) 22px 23px
+    );
+  animation: home-globe-spin 48s linear infinite;
+  mask-image: radial-gradient(circle, #000 58%, transparent 72%);
+}
+
+@keyframes home-globe-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.home-menu-in {
+  animation: home-menu-in 0.35s ease;
+}
+
+@keyframes home-menu-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .home-kenburns,
+  .home-dash,
+  .home-map-pulse,
+  .home-globe-spin,
+  .home-scroll-cue span,
+  .home-menu-in {
+    animation: none !important;
+  }
+  .home-reveal {
+    opacity: 1;
+    transform: none;
+  }
 }
