@@ -200,6 +200,20 @@ h1, h2, h3, h4, h5, h6 {
   animation: home-menu-in 0.35s ease;
 }
 
+.about-tricolour-wash {
+  background:
+    linear-gradient(180deg, rgba(255, 153, 51, 0.18) 0%, transparent 28%),
+    linear-gradient(180deg, transparent 42%, rgba(255, 255, 255, 0.06) 52%, transparent 62%),
+    linear-gradient(180deg, transparent 72%, rgba(19, 136, 8, 0.16) 100%);
+  mix-blend-mode: soft-light;
+}
+
+.about-glass {
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(10, 25, 41, 0.08);
+  backdrop-filter: blur(14px);
+}
+
 @keyframes home-menu-in {
   from { opacity: 0; }
   to { opacity: 1; }
