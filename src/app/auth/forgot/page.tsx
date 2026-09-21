@@ -28,12 +28,8 @@ export default function ForgotPasswordPage() {
 
     setSubmitting(false);
 
-    if (resetError) {
-      if (resetError.message.includes("Too many requests")) {
-        setError("Too many reset attempts. Please wait a few minutes and try again.");
-      } else {
-        setError(resetError.message);
-      }
+    if (resetError?.message.toLowerCase().includes("too many")) {
+      setError("Please wait a few minutes before trying again.");
       return;
     }
 

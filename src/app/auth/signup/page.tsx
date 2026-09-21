@@ -198,7 +198,7 @@ export default function SignupPage() {
       setSubmitting(false);
       const msg = signUpError.message.toLowerCase();
       if (msg.includes("already registered") || msg.includes("already exists") || msg.includes("user already")) {
-        setError("EMAIL_EXISTS");
+        setSuccess(true);
         return;
       }
       if (msg.includes("valid email")) {
@@ -213,7 +213,7 @@ export default function SignupPage() {
 
     if (signUpData?.user && (!signUpData.user.identities || signUpData.user.identities.length === 0)) {
       setSubmitting(false);
-      setError("EMAIL_EXISTS");
+      setSuccess(true);
       return;
     }
 
@@ -268,7 +268,7 @@ export default function SignupPage() {
     return (
       <CenteredNote
         title="Check your email"
-        body="We've sent a confirmation link. Click it to activate your account, then log in."
+        body="If this address can be used for a new account, we sent a confirmation link. If you already have a membership, log in instead."
       />
     );
   }
@@ -579,14 +579,7 @@ export default function SignupPage() {
 
             {error ? (
               <div className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-                {error === "EMAIL_EXISTS" ? (
-                  <>
-                    An account with this email already exists. Please{" "}
-                    <Link href="/auth/login" className="font-semibold underline">log in instead</Link>.
-                  </>
-                ) : (
-                  error
-                )}
+                {error}
               </div>
             ) : null}
 

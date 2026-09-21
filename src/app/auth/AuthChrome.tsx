@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 
 export default function AuthChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const wide = pathname === "/auth/signup";
+  const wide = pathname === "/auth/signup" || pathname === "/auth/login";
 
   if (wide) {
     return <div className="min-h-screen bg-[#f6f4f0]">{children}</div>;
