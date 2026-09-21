@@ -40,8 +40,16 @@ function readLocale(): Locale {
   return "en";
 }
 
+function readLocaleOnServer(): Locale {
+  return "en";
+}
+
 export function LocaleProvider({ children }: { children: ReactNode }) {
-  const stored = useSyncExternalStore(subscribeLocale, readLocale, () => "en");
+  const stored = useSyncExternalStore(
+    subscribeLocale,
+    readLocale,
+    readLocaleOnServer
+  );
   const [override, setOverride] = useState<Locale | null>(null);
   const locale = override ?? stored;
 
