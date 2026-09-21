@@ -30,7 +30,8 @@ export default function Navbar() {
   );
   const pathname = usePathname();
   const { locale, setLocale } = useLocale();
-  const isHome = pathname === "/" || pathname === "/about";
+  const isHome =
+    pathname === "/" || pathname === "/about" || pathname === "/members";
   const overlay = (isHome && !scrolled) || open;
   const barText = overlay ? "text-white" : "text-navy";
 

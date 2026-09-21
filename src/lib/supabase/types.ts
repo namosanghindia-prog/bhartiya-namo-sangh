@@ -105,6 +105,11 @@ export interface PublicMember {
   designation: string | null;
   avatar_url: string | null;
   branch_name: string | null;
+  // Optional columns — present when the view/join exposes them.
+  city?: string | null;
+  state?: string | null;
+  branch_state?: string | null;
+  membership_type?: MembershipType | null;
 }
 
 // 3. Event
