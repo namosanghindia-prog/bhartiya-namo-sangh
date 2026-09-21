@@ -1,5 +1,6 @@
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import NewsletterSubscribe from "@/components/layout/NewsletterSubscribe";
 import PaymentSafetyNotice from "@/components/PaymentSafetyNotice";
 import TricolorBird from "@/components/TricolorBird";
 import { LocaleProvider } from "@/lib/locale";
@@ -23,6 +24,7 @@ export default function PublicLayout({
       <main id="main-content" className="flex-1">
         {children}
       </main>
+      <NewsletterSubscribe />
       <Footer />
     </LocaleProvider>
   );
