@@ -98,7 +98,10 @@ export default function Navbar() {
   const router = useRouter();
   const { locale, setLocale } = useLocale();
   const isHome =
-    pathname === "/" || pathname === "/about" || pathname === "/members";
+    pathname === "/" ||
+    pathname === "/about" ||
+    pathname === "/members" ||
+    pathname === "/contact";
   const overlay = (isHome && !scrolled) || open;
   const barText = overlay ? "text-white" : "text-navy";
 
