@@ -1,6 +1,7 @@
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import PaymentSafetyNotice from "@/components/PaymentSafetyNotice";
+import TricolorBird from "@/components/TricolorBird";
 import { LocaleProvider } from "@/lib/locale";
 
 export default function PublicLayout({
@@ -18,6 +19,7 @@ export default function PublicLayout({
       </a>
       <PaymentSafetyNotice />
       <Navbar />
+      <TricolorBird />
       <main id="main-content" className="flex-1">
         {children}
       </main>

@@ -196,6 +196,22 @@ h1, h2, h3, h4, h5, h6 {
   to { transform: rotate(360deg); }
 }
 
+.tricolor-bird-wing {
+  transform-origin: 52px 40px;
+  animation: tricolor-bird-flap 0.42s ease-in-out infinite alternate;
+}
+
+@keyframes tricolor-bird-flap {
+  from { transform: rotate(-8deg); }
+  to { transform: rotate(10deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tricolor-bird-wing {
+    animation: none;
+  }
+}
+
 .menu-overlay {
   position: fixed;
   inset: 0;
