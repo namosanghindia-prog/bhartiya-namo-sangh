@@ -169,7 +169,18 @@ export default function Footer() {
         </div>
 
         <div className="mt-10 border-t border-white/10 pt-6 text-center text-xs text-white/50">
-          © {year} Bhartiya Namo Sangh. All rights reserved.
+          <p>© {year} Bhartiya Namo Sangh. All rights reserved.</p>
+          <p className="mt-2">
+            Website by{" "}
+            <a
+              href="https://estoriz.shop"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white/70 underline-offset-2 hover:text-white hover:underline"
+            >
+              estoriz.shop
+            </a>
+          </p>
         </div>
       </div>
     </footer>
