@@ -15,7 +15,7 @@ export const SIGNATORY = {
   /** Rendered on the letter. Missing from public/ at present, which the
    *  SignatureImage fallback handles by leaving the space blank. */
   image: "/signature-president.png",
-  name: "डॉ. मनोज कुमार (मनु तोमर)",
+  name: "डॉ. मनोज कुमार (मन्नू तोमर)",
   role: "राष्ट्रीय अध्यक्ष",
   org: "भारतीय नमो संघ (BNMS)",
 
