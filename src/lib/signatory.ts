@@ -18,7 +18,6 @@ export const SIGNATORY = {
   name: "डॉ. मनोज कुमार (मनु तोमर)",
   role: "राष्ट्रीय अध्यक्ष",
   org: "भारतीय नमो संघ (BNMS)",
-  note: "पूर्व राष्ट्रीय प्रवक्ता – वर्ल्ड वेदांत इंस्टीट्यूट",
 
   /** Transliterated, for the email signature only — the letter is Hindi
    *  throughout and uses none of these. */

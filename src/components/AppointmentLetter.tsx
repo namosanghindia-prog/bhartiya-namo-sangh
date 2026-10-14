@@ -928,7 +928,6 @@ export default function AppointmentLetter({
                   </p>
                   <p className="text-[11px] font-bold leading-tight">{SIGNATORY.role}</p>
                   <p className="text-[10.5px] leading-tight text-[#0a1929]/75">{SIGNATORY.org}</p>
-                  <p className="text-[9px] leading-tight text-[#0a1929]/60">{SIGNATORY.note}</p>
                 </div>
 
                 {/* Same /verify/{id} target as the ID card — one QR per member, not a second one. */}
