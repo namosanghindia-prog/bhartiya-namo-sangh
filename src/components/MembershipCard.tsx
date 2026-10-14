@@ -94,7 +94,7 @@ const TERMS = [
 ];
 
 const BACK_TAGLINE =
-  "एक संगठन जो भारत द्वारा जन कल्याणकारी योजनाओं की हर कड़ी एवं जन-जन तक पहुंचाने के लिए प्रतिबद्ध हैं।";
+  "एक ऐसा संगठन, जो भारत सरकार की जनकल्याणकारी योजनाओं को समाज के प्रत्येक वर्ग तक पहुँचाने और उनका लाभ जन-जन तक सुनिश्चित करने के लिए प्रतिबद्ध है।";
 
 function formatDDMMYYYY(dateStr: string): string {
   const d = new Date(dateStr);
@@ -675,7 +675,7 @@ export default function MembershipCard({
                 <OrgHeader compact />
               </div>
 
-              <div className="relative z-10 px-3 pt-1 pb-[18px] flex-1 min-h-0 flex gap-2.5">
+              <div className="relative z-10 px-3 pt-1 pb-[26px] flex-1 min-h-0 flex gap-2.5">
                 {/* Terms + barcode */}
                 <div className="w-[62%] min-w-0 flex flex-col">
                   <div className="mb-[5px]">
